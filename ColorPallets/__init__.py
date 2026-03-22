@@ -1,0 +1,1 @@
+from ColorPallets.Catpuccin import *

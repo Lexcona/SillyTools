@@ -1,0 +1,6 @@
+bs4
+rich
+requests
+dearpygui
+dnspython
+cryptography
