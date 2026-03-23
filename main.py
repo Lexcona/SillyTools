@@ -99,6 +99,7 @@ def show_internet():
         create_tool("Method Scanner", Tools.UI.Internet.method_scanner, width=500, height=300, parent=hor_group)
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("URL Checker", Tools.UI.Internet.url_checker, width=500, height=300, parent=hor_group)
+        create_tool("Website Info", Tools.UI.Internet.website_info, width=500, height=300, parent=hor_group)
 
 def show_discord():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:

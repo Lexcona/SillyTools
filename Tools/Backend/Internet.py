@@ -17,6 +17,7 @@ import bs4
 
 from dns.exception import DNSException
 from bs4 import BeautifulSoup
+from requests.structures import CaseInsensitiveDict
 
 import Libs.Networking
 
@@ -545,3 +546,52 @@ def url_checker():
     else:
         themes.set_colored_result(result_text, "no valid urls :(", "Red")
 
+def clean_headers(headers:CaseInsensitiveDict[str]):
+    better_headers = {}
+    usual_headers = [
+
+    ]
+    for key, value in headers.items():
+        if not key.lower() in usual_headers:
+            better_headers[key] = value
+    return better_headers
+
+def web_info_text_thing(res:requests.Response):
+    info_text = ""
+    info_text += f"url: {res.url}\n"
+    if res.raw._connection:
+        info_text += f"ip: {res.raw._connection.sock.getpeername()[0]}\n"
+    info_text += f"status code: {res.status_code}\n"
+    info_text += f"server: {res.headers.get('server', 'unknown')}\n"
+    info_text += f"\nheaders:\n"
+    for key, value in clean_headers(res.headers).items():
+        info_text += f"{key}: {value}\n"
+    info_text += "=======================\n"
+    return info_text
+
+def website_info():
+    result_text = "internet.website_info_result_text"
+
+    url = dpg.get_value("internet.website_info_url_input").strip()
+    if not url:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    if not "://" in url:
+        url = "https://" + url
+
+    headers = {
+        "User-Agent": Libs.Networking.get_user_agent()
+    }
+
+    res = requests.get(url, headers=headers, allow_redirects=True, stream=True)
+
+    info_text = "found web info :3\n"
+    info_text += "=======================\n"
+
+    info_text += web_info_text_thing(res)
+
+    for redirect in res.history:
+        info_text += web_info_text_thing(redirect)
+
+    themes.set_colored_result(result_text, info_text, "Mauve")

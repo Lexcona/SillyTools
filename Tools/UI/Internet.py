@@ -148,14 +148,13 @@ def tag_dumper():
         #dpg.add_spacer(width=8)
         dpg.add_button(label="Select Folder", callback=lambda: dpg.show_item("internet.tag_dumper_dir_dialog"))
 
-        with dpg.file_dialog(
+        dpg.file_dialog(
             directory_selector=True,
             show=False,
             callback=Libs.General.dir_callback,
             tag="internet.tag_dumper_dir_dialog",
             user_data="internet.tag_dumper_output_input"
-        ):
-            pass
+        )
 
 
     dpg.add_spacer(height=12)
@@ -230,3 +229,32 @@ def url_checker():
     )
 
     themes.set_colored_result("internet.url_checker_result_text", themes.default_result_text, "Mauve")
+
+def website_info():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.website_info_url_input",
+            hint="URL",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Find Info",
+            callback=Tools.Backend.Internet.website_info,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.website_info_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.website_info_result_text", themes.default_result_text, "Mauve")

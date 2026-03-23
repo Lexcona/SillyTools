@@ -9,7 +9,7 @@ def github_email_search():
     with dpg.group(horizontal=True):
         dpg.add_input_text(
             tag="osint.github_email_search_input",
-            hint="Username/Email",
+            hint="Username/URL",
             width=300
         )
 
