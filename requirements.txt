@@ -4,3 +4,4 @@ requests
 dearpygui
 dnspython
 cryptography
+pywebcopy

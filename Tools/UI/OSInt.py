@@ -32,7 +32,7 @@ def github_email_search():
         readonly=True
     )
 
-    themes.set_colored_result("osint.github_email_search_input_result_text", "thing happen here when you press the button :3", "Mauve")
+    themes.set_colored_result("osint.github_email_search_input_result_text", themes.default_result_text, "Mauve")
 
 def ip_lookup():
     with dpg.group(horizontal=True):
@@ -60,4 +60,4 @@ def ip_lookup():
         height=185,
         readonly=True
     )
-    themes.set_colored_result("osint.ip_lookup_result_text", "thing happen here when you press the button :3", "Mauve")
+    themes.set_colored_result("osint.ip_lookup_result_text", themes.default_result_text, "Mauve")

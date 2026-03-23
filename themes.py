@@ -2,6 +2,8 @@ import dearpygui.dearpygui as dpg
 
 from ColorPallets.Catpuccin import Mocha
 
+default_result_text = "thing happen here when you press the button :3"
+
 def set_colored_result(tag: str, text: str, color_name: str = "Mauve"):
     color_themes = {
         "Rosewater": result_rosewater,

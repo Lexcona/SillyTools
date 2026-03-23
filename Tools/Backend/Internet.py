@@ -1,3 +1,4 @@
+import os
 import ssl
 import time
 import socket
@@ -8,8 +9,9 @@ import concurrent.futures
 from collections import deque
 from queue import Queue, Empty
 
-import dns.resolver
 import dearpygui.dearpygui as dpg
+import dns.resolver
+import pywebcopy
 import requests
 import bs4
 
@@ -403,3 +405,143 @@ def site_mapper(sender, app_data, user_data):
 
     final_text = "\n".join(summary_lines).strip()
     themes.set_colored_result(result_widget, final_text, "Mauve")
+
+def tag_dumper():
+    result_text = "internet.tag_dumper_result_text"
+
+    url = dpg.get_value("internet.tag_dumper_url_input").strip()
+    if not url:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    if not "://" in url:
+        url = "https://"+url
+
+    output = dpg.get_value("internet.tag_dumper_output_input").strip()
+    if not output:
+        output = f"./export/tag_dumper/{url.split('://')[-1].replace('/', '_')}"
+
+    os.makedirs(output, exist_ok=True)
+
+    headers = {
+        "User-Agent": Libs.Networking.get_user_agent()
+    }
+
+    tag_count = {
+
+    }
+
+    try:
+        res = requests.get(url, headers=headers)
+        res.raise_for_status()
+
+        soup = BeautifulSoup(res.content, "html.parser")
+        tags = soup.find_all()
+        for tag in tags:
+            tag_count[tag.name] = 0
+
+        for tag in tags:
+            tag_count[tag.name] = tag_count[tag.name] + 1
+            themes.set_colored_result(result_text, f"found {tag.name} :3", "Mauve")
+
+            dirm = output + "/" + tag.name
+
+            os.makedirs(dirm, exist_ok=True)
+
+            with open(dirm + "/" + str(tag_count[tag.name]) + ".html", "w+") as f:
+                f.write(str(tag))
+
+        with open(f"{output}/page.html", "w+") as f:
+            f.write(res.text)
+
+        tag_text = f"dumped all tags :3\n"
+        for key, value in tag_count.items():
+            tag_text += f"{key}: {value}\n"
+        themes.set_colored_result(result_text, tag_text, "Mauve")
+
+    except Exception as e:
+        themes.set_colored_result(result_text, f"thing went boom :(", "Red")
+        console.print(e, style="red")
+
+def method_scanner():
+    result_text = "internet.method_scanner_result_text"
+
+    url = dpg.get_value("internet.method_scanner_url_input").strip()
+    if not url:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    if not "://" in url:
+        url = "https://"+url
+
+    headers = {
+        "User-Agent": Libs.Networking.get_user_agent()
+    }
+
+    valid_methods = []
+
+    methods = [
+        "GET",
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE",
+        "HEAD",
+        "CONNECT",
+        "OPTIONS",
+        "TRACE"
+    ]
+
+    for method in methods:
+        themes.set_colored_result(result_text, f"checking {method}...", "Mauve")
+        res = requests.request(method, url, allow_redirects=True, headers=headers)
+
+        if not res.status_code in (404, 405, 501):
+            themes.set_colored_result(result_text, f"{method} valid :3", "Mauve")
+            valid_methods.append(method)
+
+    if valid_methods:
+        info_text = f"found valid methods for {url} :3\n{'\n'.join(valid_methods)}"
+        themes.set_colored_result(result_text, info_text, "Mauve")
+    else:
+        themes.set_colored_result(result_text, "no methods found :(", "Mauve")
+
+def url_checker():
+    result_text = "internet.url_checker_result_text"
+
+    urls = dpg.get_value("internet.url_checker_urls_input").strip()
+    if not urls:
+        themes.set_colored_result(result_text, "you kinda forgot the urls...", "Red")
+        return
+
+    urls = urls.splitlines()
+
+    valid_urls = []
+    invalid_urls = []
+    timed_urls = []
+
+    for url in urls:
+        url_check = Libs.Networking.check_url(url)
+        if url_check == True:
+            themes.set_colored_result(result_text, f"{url} valid :3", "Mauve")
+            valid_urls.append(url)
+        elif url_check == "Timed Out":
+            themes.set_colored_result(result_text, f"{url} timed out :(", "Red")
+            timed_urls.append(url)
+        else:
+            themes.set_colored_result(result_text, f"{url} invalid :(", "Red")
+            invalid_urls.append(url)
+    if valid_urls:
+        url_text = "found valid urls :3\n\nvalid urls:\n"
+        for url in valid_urls:
+            url_text += f"{url}\n"
+        url_text += "\ninvalid urls:\n"
+        for url in invalid_urls:
+            url_text += f"{url}\n"
+        url_text += "\ntimed out urls:\n"
+        for url in timed_urls:
+            url_text += f"{url}\n"
+        themes.set_colored_result(result_text, url_text, "Mauve")
+    else:
+        themes.set_colored_result(result_text, "no valid urls :(", "Red")
+

@@ -15,7 +15,8 @@ import themes
 import Tools.UI.OSInt
 import Tools.UI.Settings
 import Tools.UI.Internet
-
+import Tools.UI.Discord
+import Tools.UI.Random
 
 with dpg.font_registry():
     big_font = dpg.add_font("Fonts/Press_Start_2P/PressStart2P-Regular.ttf", 17)
@@ -93,15 +94,27 @@ def show_internet():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("DNS Dump", Tools.UI.Internet.domain_to_ip, width=500, height=300, parent=hor_group)
         create_tool("Site Mapper", Tools.UI.Internet.site_mapper, width=500, height=300, parent=hor_group)
-
-def show_discord_webhook():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
-        create_tool("Send Message", Tools.UI.Internet.find_name_servers, width=500, height=300, parent=hor_group)
+        create_tool("Tag Dumper", Tools.UI.Internet.tag_dumper, width=500, height=300, parent=hor_group)
+        create_tool("Method Scanner", Tools.UI.Internet.method_scanner, width=500, height=300, parent=hor_group)
+    with dpg.group(horizontal=True, parent="content_area") as hor_group:
+        create_tool("URL Checker", Tools.UI.Internet.url_checker, width=500, height=300, parent=hor_group)
+
+def show_discord():
+    with dpg.group(horizontal=True, parent="content_area") as hor_group:
+        create_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, width=500, height=300, parent=hor_group)
+
+def show_random():
+    with dpg.group(horizontal=True, parent="content_area") as hor_group:
+        create_tool("JSON Formater", Tools.UI.Random.json_formater, width=500, height=300, parent=hor_group)
+        create_tool("Computer Information", Tools.UI.Random.computer_information, width=500, height=300, parent=hor_group)
+
 
 add_catagory("Home", show_home)
 add_catagory("OSInt", show_osint)
 add_catagory("Internet", show_internet)
-add_catagory("Discord Webhook", show_internet)
+add_catagory("Random", show_random)
+#add_catagory("Discord", show_discord)
 add_catagory("Settings", show_settings)
 
 

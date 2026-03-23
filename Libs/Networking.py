@@ -1,4 +1,5 @@
 import random
+import socket
 import requests
 import ipaddress
 
@@ -232,3 +233,32 @@ def get_user_agent():
         user_agents = requests.get("https://gist.githubusercontent.com/pzb/b4b6f57144aea7827ae4/raw/cf847b76a142955b1410c8bcef3aabe221a63db1/user-agents.txt").text.strip().splitlines()
 
     return random.choice(user_agents)
+
+
+def check_url(url):
+    url = url.strip()
+    if not "://" in url:
+        url = "https://" + url
+
+    try:
+        res = requests.get(url, headers={"User-Agent": get_user_agent()}, timeout=10)
+
+        if res.status_code != 404:
+            return True
+        else:
+            return False
+    except requests.exceptions.Timeout:
+        return "Timed Out"
+    except Exception as e:
+        console.print(e, style="red")
+        return None
+
+def get_local_ip():
+    socketer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        socketer.connect(("8.8.8.8", 80))
+        return socketer.getsockname()[0]
+    except Exception:
+        return "Unknown"
+    finally:
+        socketer.close()
