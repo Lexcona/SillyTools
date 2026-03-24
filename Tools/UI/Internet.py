@@ -258,3 +258,32 @@ def website_info():
     )
 
     themes.set_colored_result("internet.website_info_result_text", themes.default_result_text, "Mauve")
+
+def whois_search():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.whois_search_domain_input",
+            hint="Domain",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Lookup",
+            callback=Tools.Backend.Internet.whois_search,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.whois_search_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.whois_search_result_text", themes.default_result_text, "Mauve")

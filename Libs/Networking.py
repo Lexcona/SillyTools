@@ -21,11 +21,21 @@ GITHUB_PAGES_IPS = {
 }
 
 def get_ipinfo(ip:str, token:str=None, format:bool=False):
+    res = requests.get(f"https://ipinfo.io/{ip}/json")
+    data = res.json()
+    if res.status_code == 404 or data.get("bogon"):
+        return False
+
+    res_geo = requests.get(f"https://geolocation-db.com/json/{ip}")
+    res_geo.raise_for_status()
+    geo_data = res_geo.json()
+
+    res_timezone = requests.get(f"https://timeapi.io/api/v1/timezone/coordinate", params={"latitude": geo_data["latitude"], "longitude": geo_data["longitude"]})
+    res_geo.raise_for_status()
+    timezone_data = res_timezone.json()
     if token == None:
         res = requests.get(f"https://ipinfo.io/{ip}/json")
         data = res.json()
-        if res.status_code == 404 or data.get("bogon"):
-            return False
         res.raise_for_status()
 
         if format == False:
@@ -39,22 +49,20 @@ def get_ipinfo(ip:str, token:str=None, format:bool=False):
             ip_text += "ISP: "+data.get("org")+"\n"
 
         ip_text += "\n"
-        if data.get("loc"):
-            ip_text += "Coords: " + data.get("loc") + "\n"
-        if data.get("city"):
-            ip_text += "Location: "+data.get("city", "Unknown")+", "+data.get("region", "Unknown")+"\n"
-        if data.get("postal"):
-            ip_text += "Zip Code/Postal: "+data.get("postal")+"\n"
-        if data.get("country"):
-            ip_text += "Country: " + data.get("country") + "\n"
-        if data.get("timezone"):
-            ip_text += "Timezone: " + data.get("timezone") + "\n"
+        if geo_data.get("latitude"):
+            ip_text += "Coords: " + str(geo_data.get("latitude")) + ", " + str(geo_data.get("longitude")) + "\n"
+        if geo_data.get("city"):
+            ip_text += "Location: "+geo_data.get("city", "Unknown")+", "+geo_data.get("state", "Unknown")+"\n"
+        if geo_data.get("postal"):
+            ip_text += "Zip Code/Postal: "+geo_data.get("postal")+"\n"
+        if geo_data.get("country_name"):
+            ip_text += "Country: " + geo_data.get("country_name") + " (" + geo_data.get("country_code") + ")" + "\n"
+        if timezone_data.get("timezone"):
+            ip_text += "Timezone: " + timezone_data.get("timezone") + "\n"
         return ip_text
     else:
         res = requests.get(f"https://api.ipinfo.io/lookup/{ip}?token={token}")
         data = res.json()
-        if res.status_code == 404 or data.get("bogon"):
-            return False
         if res.status_code == 403:
             res = requests.get(f"https://api.ipinfo.io/lite/{ip}?token={token}")
             data = res.json()
@@ -77,10 +85,16 @@ def get_ipinfo(ip:str, token:str=None, format:bool=False):
 
                 ip_text += "\n"
 
-                if data.get("country"):
-                    ip_text += "Country: " + data.get("country") + " (" + data.get("country_code") + ")" + "\n"
-                if data.get("continent"):
-                    ip_text += "Continent: " + data.get("continent") + " (" + data.get("continent_code") + ")" + "\n"
+                if geo_data.get("latitude"):
+                    ip_text += "Coords: " + str(geo_data.get("latitude")) + ", " + str(geo_data.get("longitude")) + "\n"
+                if geo_data.get("city"):
+                    ip_text += "Location: " + geo_data.get("city", "Unknown") + ", " + geo_data.get("state", "Unknown") + "\n"
+                if geo_data.get("postal"):
+                    ip_text += "Zip Code/Postal: " + geo_data.get("postal") + "\n"
+                if geo_data.get("country_name"):
+                    ip_text += "Country: " + geo_data.get("country_name") + " (" + geo_data.get("country_code") + ")" + "\n"
+                if timezone_data.get("timezone"):
+                    ip_text += "Timezone: " + timezone_data.get("timezone") + "\n"
                 return ip_text
         res.raise_for_status()
         if not format:
@@ -94,26 +108,16 @@ def get_ipinfo(ip:str, token:str=None, format:bool=False):
 
         ip_text += "\n"
 
-        geo = data.get("geo")
-        if geo:
-            if geo.get("latitude"):
-                ip_text += "Coords: " + geo.get("latitude")+", "+geo.get("longitude") + "\n"
-            if geo.get("city"):
-                ip_text += "Location: " + geo.get("city", "Unknown") + ", " + geo.get("region", "Unknown") + " ("+geo.get("region_code", "Unknown") +")" + "\n"
-            if geo.get("postal_code"):
-                ip_text += "Zip Code/Postal: " + geo.get("postal_code") + "\n"
-            if geo.get("country"):
-                ip_text += "Country: " + geo.get("country") + " (" + geo.get("country_code") + ")" + "\n"
-            if geo.get("continent"):
-                ip_text += "Continent: " + geo.get("continent") + " (" + geo.get("continent_code") + ")" + "\n"
-            if geo.get("timezone"):
-                ip_text += "Timezone: " + geo.get("timezone") + "\n"
-            if geo.get("dma_code"):
-                ip_text += "DMA Code: " + geo.get("dma_code") + "\n"
-            if geo.get("geoname_id"):
-                ip_text += "Geoname ID: " + geo.get("geoname_id") + "\n"
-            if geo.get("radius"):
-                ip_text += "Radius: " + geo.get("radius") + "\n"
+        if geo_data.get("latitude"):
+            ip_text += "Coords: " + str(geo_data.get("latitude")) + ", " + str(geo_data.get("longitude")) + "\n"
+        if geo_data.get("city"):
+            ip_text += "Location: " + geo_data.get("city", "Unknown") + ", " + geo_data.get("state", "Unknown") + "\n"
+        if geo_data.get("postal"):
+            ip_text += "Zip Code/Postal: " + geo_data.get("postal") + "\n"
+        if geo_data.get("country_name"):
+            ip_text += "Country: " + geo_data.get("country_name") + " (" + geo_data.get("country_code") + ")" + "\n"
+        if timezone_data.get("timezone"):
+            ip_text += "Timezone: " + timezone_data.get("timezone") + "\n"
 
         ip_text += "\n"
 

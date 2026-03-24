@@ -93,7 +93,7 @@ with dpg.theme() as result_lavender:
     with dpg.theme_component(dpg.mvInputText):
         dpg.add_theme_color(dpg.mvThemeCol_Text, Mocha.Lavender)
 
-with dpg.theme() as catppuccin_theme:
+with dpg.theme() as mocha_catppuccin_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_Text, Mocha.Text)
         dpg.add_theme_color(dpg.mvThemeCol_TextDisabled, Mocha.Overlay0)

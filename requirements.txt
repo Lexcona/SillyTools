@@ -5,3 +5,4 @@ dearpygui
 dnspython
 cryptography
 pywebcopy
+python-whois

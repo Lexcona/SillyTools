@@ -1,6 +1,7 @@
 import os
 import ssl
 import time
+import whois
 import socket
 import threading
 import urllib.parse
@@ -560,7 +561,8 @@ def web_info_text_thing(res:requests.Response):
     info_text = ""
     info_text += f"url: {res.url}\n"
     if res.raw._connection:
-        info_text += f"ip: {res.raw._connection.sock.getpeername()[0]}\n"
+        ip_addr = res.raw._connection.sock.getpeername()[0]
+        info_text += f"ip: {ip_addr} {Libs.Networking.service_tag(ip_addr)}\n"
     info_text += f"status code: {res.status_code}\n"
     info_text += f"server: {res.headers.get('server', 'unknown')}\n"
     info_text += f"\nheaders:\n"
@@ -595,3 +597,33 @@ def website_info():
         info_text += web_info_text_thing(redirect)
 
     themes.set_colored_result(result_text, info_text, "Mauve")
+
+def whois_search():
+    result_text = "internet.whois_search_result_text"
+
+    domain = dpg.get_value("internet.whois_search_domain_input").strip()
+    if not domain:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    domain = domain.split("://")[-1].split("/")[0]
+
+    try:
+        whois_data = whois.whois(domain)
+
+        whois_text = "got whois data :3\n\n"
+
+        for key, value in whois_data.items():
+            if isinstance(value, list):
+                whois_text += f"{key.replace('_', ' ')}:\n"
+                for thing in value:
+                    whois_text += f"{thing}\n"
+                whois_text += "\n"
+            else:
+                whois_text += f"{key.replace('_', ' ')}: {value}\n"
+
+        themes.set_colored_result(result_text, whois_text, "Mauve")
+
+    except Exception as e:
+        themes.set_colored_result(result_text, "thing went boom :(", "Red")
+        console.print(e, style="red")
