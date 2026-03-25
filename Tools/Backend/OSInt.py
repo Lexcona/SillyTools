@@ -8,6 +8,8 @@ import dearpygui.dearpygui as dpg
 from rich.console import Console
 
 import ColorPallets.Catpuccin.Mocha
+import Libs.Networking
+import Libs.General
 
 from Libs import GitHub
 from Libs import Networking
@@ -136,6 +138,53 @@ def ip_lookup(sender, app_data, user_data):
         else:
             themes.set_colored_result(result_text, "ip no real :(", "Red")
 
+    except Exception as e:
+        themes.set_colored_result(result_text, "thing went boom :(", "Red")
+        console.print(e, style="red")
+
+search_list = [
+    {
+        "name": "GitHub",
+        "url": "https://api.github.com/users/[username]",
+        "not_found_text": "Not Found",
+        "user_format": "https://github.com/[username]"
+    },
+    {
+        "name": "Minecraft",
+        "url": "https://api.mojang.com/users/profiles/minecraft/[username]",
+        "not_found_text": "Not Found",
+        "user_format": "[username]"
+    },
+]
+
+def username_search():
+    result_text = "osint.username_search_result_text"
+
+    user = dpg.get_value("osint.username_search_username_input").strip()
+
+    if not user:
+        themes.set_colored_result(result_text, "you kinda forgot the username...", "Red")
+        return
+
+    try:
+        found_accounts = []
+        for username in user.splitlines():
+            for search in search_list:
+                themes.set_colored_result(result_text, f"checking {search['name']}", "Mauve")
+                res = requests.get(Libs.General.replace_placeholders(search["url"], {"username": username}), allow_redirects=True, headers={"User-Agent": Libs.Networking.get_user_agent()})
+                if res.status_code == 404 or search["not_found_text"] in res.text:
+                    themes.set_colored_result(result_text, f"user no found on {search['name']}", "Red")
+                else:
+                    themes.set_colored_result(result_text, f"found user on {search['name']}", "Green")
+                    found_accounts.append({"name": search["name"], "url": Libs.General.replace_placeholders(search["user_format"], {"username": username})})
+
+        if found_accounts:
+            info_text = f"found {len(found_accounts)} accounts :3\n\n"
+            for account in found_accounts:
+                info_text += f"{account['name']}: {account['url']}\n"
+            themes.set_colored_result(result_text, info_text, "Mauve")
+        else:
+            themes.set_colored_result(result_text, "accounts no found :(", "Red")
     except Exception as e:
         themes.set_colored_result(result_text, "thing went boom :(", "Red")
         console.print(e, style="red")

@@ -2,8 +2,9 @@ import os
 
 import dearpygui.dearpygui as dpg
 
-
 from ColorPallets.Catpuccin import Mocha
+
+from Libs.ConfigManager import config
 
 def button_callback(sender, app_data):
     print(f"Button pressed! Value: {app_data}")
@@ -33,9 +34,10 @@ dpg.create_viewport(
     title=title,
     width=1335,
     height=720,
-    clear_color=Mocha.Base,
     resizable=False
 )
+dpg.set_viewport_small_icon("Assets/icon.png")
+
 catagories = []
 
 def add_catagory(name:str, cat_func):
@@ -60,7 +62,7 @@ def create_tool(name: str, build_ui_func, width=450, height=300, parent=None):
         no_scrollbar=False,
     ):
         with dpg.group(horizontal=True):
-            dpg.add_text(name, color=Mocha.Rosewater)
+            dpg.add_text(name, color=themes.current_theme["pallet"].Rosewater)
             dpg.add_spacer(width=-1)
         dpg.add_separator()
         build_ui_func()
@@ -73,7 +75,6 @@ def show_home():
             THIS TOOL SHOULD NOT BE USED AGAINST ANYTHING WITHOUT THE PERMISSION OF THE PERSON OR OWNER.
             I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.
             Also cash if you are reading this, this is not evidence of me being a furry femboy.""".replace("  ", ""),
-        color=Mocha.Text,
         wrap=0,
         parent="content_area"
     )
@@ -82,10 +83,13 @@ def show_osint():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("GitHub Email Search", Tools.UI.OSInt.github_email_search, width=500, height=300, parent=hor_group)
         create_tool("IP Lookup", Tools.UI.OSInt.ip_lookup, width=500, height=300, parent=hor_group)
+    with dpg.group(horizontal=True, parent="content_area") as hor_group:
+        create_tool("Username Search", Tools.UI.OSInt.username_search, width=500, height=300, parent=hor_group)
 
 def show_settings():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("API Keys", Tools.UI.Settings.api_keys, width=450, height=300, parent=hor_group)
+        create_tool("Menu Settings", Tools.UI.Settings.menu_settings, width=450, height=300, parent=hor_group)
 
 def show_internet():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
@@ -126,7 +130,7 @@ with dpg.window(label="Main Content", tag="main_window", no_title_bar=True, no_r
         with dpg.child_window(width=280, height=0, border=True, no_scrollbar=False):
             with dpg.group(horizontal=True):
                 dpg.add_spacer(width=-1)
-                title_item = dpg.add_text(title, color=Mocha.Text)
+                title_item = dpg.add_text(title)
                 dpg.add_spacer(width=-1)
 
             dpg.bind_item_font(title_item, big_font)
@@ -140,8 +144,10 @@ with dpg.window(label="Main Content", tag="main_window", no_title_bar=True, no_r
         with dpg.child_window(width=0, height=0, border=True, no_scrollbar=False, tag="content_area"):
             pass
 
+themes.current_theme = themes.theme_dict[config.read("theme", list(themes.theme_dict.keys())[0])]
+dpg.bind_theme(themes.current_theme["theme"])
 
-dpg.bind_theme(themes.mocha_catppuccin_theme)
+#dpg.show_item_registry()
 
 set_catagory(None, None, 0)
 

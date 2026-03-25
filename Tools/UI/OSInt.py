@@ -61,3 +61,32 @@ def ip_lookup():
         readonly=True
     )
     themes.set_colored_result("osint.ip_lookup_result_text", themes.default_result_text, "Mauve")
+
+def username_search():
+
+    dpg.add_input_text(
+        tag="osint.username_search_username_input",
+        hint="Username",
+        width=480,
+        height=185,
+        multiline=True
+    )
+
+    dpg.add_button(
+        label="Lookup Username",
+        callback=Tools.Backend.OSInt.username_search,
+        user_data=None,
+        width=480
+    )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="osint.username_search_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+    themes.set_colored_result("osint.username_search_result_text", themes.default_result_text, "Mauve")

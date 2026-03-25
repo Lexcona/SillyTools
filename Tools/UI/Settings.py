@@ -1,9 +1,11 @@
 import json
 
+
 import dearpygui.dearpygui as dpg
 
 import ColorPallets.Catpuccin.Mocha
 import Tools.Backend.Settings
+import themes
 
 from Libs.ConfigManager import config
 
@@ -26,7 +28,7 @@ def api_keys():
     # GitHub API Key Set
     dpg.add_text(
         default_value="GitHub API Key",
-        color=ColorPallets.Catpuccin.Mocha.Mauve,
+        color=themes.current_theme["pallet"].Mauve,
         wrap=0
     )
     with dpg.group(horizontal=True):
@@ -50,7 +52,7 @@ def api_keys():
 
     dpg.add_text(
         default_value="ipinfo.io API Key",
-        color=ColorPallets.Catpuccin.Mocha.Mauve,
+        color=themes.current_theme["pallet"].Mauve,
         wrap=0
     )
     with dpg.group(horizontal=True):
@@ -77,3 +79,11 @@ def api_keys():
         callback=toggle_keys,
         user_data=None
     )
+
+def menu_settings():
+    dpg.add_text(
+        default_value="Theme",
+        color=themes.current_theme["pallet"].Mauve,
+        wrap=0
+    )
+    dpg.add_listbox(list(themes.theme_dict.keys()), default_value=list(themes.theme_dict.keys())[0], tag="menu_settings.theme", callback=Tools.Backend.Settings.set_theme)

@@ -18,6 +18,10 @@ def color_fixer(color:list):
     return cool
 
 
+def replace_placeholders(text:str, vars:dict):
+    for key, value in vars.items():
+        text = text.replace("["+key+"]", value)
+    return text
 
 def dir_callback(sender, app_data, user_data):
     dpg.set_value(user_data, app_data["file_path_name"])
