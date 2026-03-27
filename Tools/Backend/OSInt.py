@@ -38,6 +38,8 @@ def search_emails_callback(sender, app_data, user_data):
                 break
         username = username_split[-1]
 
+    themes.set_colored_result(result_text, f"checking if real user...", "Mauve")
+
     if not GitHub.check_real_user(username):
         themes.set_colored_result(result_text, "user no real :(", "Red")
         return
@@ -121,6 +123,8 @@ def ip_lookup(sender, app_data, user_data):
         themes.set_colored_result(result_text, "you kinda forgot the ip address...", "Red")
         return
 
+    themes.set_colored_result(result_text, f"looking up {ip_addr}...", "Mauve")
+
     try:
         params = {}
         api_key = config.read("api_keys/ipinfo")
@@ -173,7 +177,7 @@ def username_search():
         for username in user.splitlines():
             for search in search_list:
                 themes.set_colored_result(result_text, f"checking {search['name']}", "Mauve")
-                res = requests.get(Libs.General.replace_placeholders(search["url"], {"username": username}), allow_redirects=True, headers={"User-Agent": Libs.Networking.get_user_agent()})
+                res = requests.get(Libs.General.replace_placeholders(search["url"], {"username": username}), allow_redirects=True, headers={"User-Agent": Libs.Networking.get_user_agent()}, proxies=Libs.Networking.get_proxies())
                 if res.status_code == 404 or search["not_found_text"] in res.text:
                     themes.set_colored_result(result_text, f"user no found on {search['name']}", "Red")
                 else:

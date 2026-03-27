@@ -1,6 +1,7 @@
 bs4
 rich
 requests
+requests[socks]
 dearpygui
 dnspython
 cryptography

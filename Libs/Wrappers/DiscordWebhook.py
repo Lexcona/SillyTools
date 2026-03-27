@@ -4,14 +4,16 @@ import requests
 
 from rich.console import Console
 
+import Libs.Networking
+
 console = Console()
 
 def url_to_base64(img_url):
-    img = requests.get(img_url).content
+    img = requests.get(img_url, proxies=Libs.Networking.get_proxies()).content
     return base64.b64encode(img).decode()
 
 def get_info(url:str):
-    res = requests.get(url)
+    res = requests.get(url, proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
@@ -21,7 +23,7 @@ def send_message(url:str, message:str):
     data = {
         "content": message
     }
-    res = requests.post(url, json=data)
+    res = requests.post(url, json=data, proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
@@ -33,21 +35,21 @@ def modify_webhook(url:str, name:str=None, avatar:str=None, channel_id:int=None)
         "avatar": f"data:image/png;base64,{url_to_base64(avatar)}",
         "channel_id": channel_id
     }
-    res = requests.patch(url, json=data)
+    res = requests.patch(url, json=data, proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
     return res.json()
 
 def delete_webhook(url:str):
-    res = requests.delete(url)
+    res = requests.delete(url, proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
     return res.json()
 
 def get_message(url:str, message:int):
-    res = requests.get(url+"/messages/"+str(message))
+    res = requests.get(url+"/messages/"+str(message), proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
@@ -57,14 +59,14 @@ def edit_message(url:str, message:int):
     data = {
         "content": message
     }
-    res = requests.patch(url+"/messages/"+str(message), json=data)
+    res = requests.patch(url+"/messages/"+str(message), json=data, proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()
     return res.json()
 
 def delete_message(url:str, message:int):
-    res = requests.delete(url+"/messages/"+str(message))
+    res = requests.delete(url+"/messages/"+str(message), proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return False
     res.raise_for_status()

@@ -72,7 +72,7 @@ def create_tool(name: str, build_ui_func, width=450, height=300, parent=None):
 def show_home():
     dpg.add_spacer(height=20, parent="content_area")
     dpg.add_text(
-        f"""Welcome {os.getlogin()}, this is just a silly little tool to just to let me do silly things.
+        f"""Welcome {Libs.General.get_user_full_name()}, this is just a silly little tool to just to let me do silly things.
             Also to any federal agents looking at this...
             THIS TOOL SHOULD NOT BE USED AGAINST ANYTHING WITHOUT THE PERMISSION OF THE PERSON OR OWNER.
             I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.
@@ -120,7 +120,7 @@ def show_general_info():
 def show_random():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("JSON Formater", Tools.UI.Random.json_formater, width=500, height=300, parent=hor_group)
-        create_tool("Computer Information", Tools.UI.Random.computer_information, width=500, height=300, parent=hor_group)
+        #create_tool("Computer Information", Tools.UI.Random.computer_information, width=500, height=300, parent=hor_group)
 
 
 add_catagory("Home", show_home)

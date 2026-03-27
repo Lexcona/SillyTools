@@ -3,9 +3,10 @@ import base64
 
 import requests
 
+import Libs
 
 def get_uuid(username:str):
-    res = requests.get(f"https://api.mojang.com/users/profiles/minecraft/{username}")
+    res = requests.get(f"https://api.mojang.com/users/profiles/minecraft/{username}", proxies=Libs.Networking.get_proxies())
     if res.status_code == 404:
         return "Not Found"
     res.raise_for_status()
@@ -16,7 +17,7 @@ def get_skin_data(username:str):
     id = get_uuid(username)
     if id == "Not Found":
         return "Not Found"
-    res = requests.get(f"https://sessionserver.mojang.com/session/minecraft/profile/{id}?unsigned=false")
+    res = requests.get(f"https://sessionserver.mojang.com/session/minecraft/profile/{id}?unsigned=false", proxies=Libs.Networking.get_proxies())
     res.raise_for_status()
 
     reconstructed_json = {}

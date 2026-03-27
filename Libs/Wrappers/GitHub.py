@@ -4,6 +4,7 @@ import requests
 
 from rich.console import Console
 
+import Libs
 from Libs.ConfigManager import config
 
 console = Console()
@@ -13,6 +14,9 @@ session = requests.Session()
 api_key = config.read("api_keys/github")
 if api_key:
     session.headers.update({"Authorization": f"token {api_key}"})
+
+def update_proxies():
+    session.proxies = Libs.Networking.get_proxies()
 
 def should_stop(status_code):
     stop_codes = (409, 404, 403)
@@ -42,6 +46,7 @@ def is_github_email(email:str):
     return False
 
 def check_real_user(username:str):
+    update_proxies()
     try:
         res = session.get(f"https://api.github.com/users/{username}")
         if res.status_code == 404:
@@ -55,6 +60,7 @@ def check_real_user(username:str):
         
 
 def get_repos(username:str, just_repos:bool=True):
+    update_proxies()
     page = 1
     repos = []
     while True:
@@ -95,6 +101,7 @@ def get_repos(username:str, just_repos:bool=True):
     return repos
 
 def get_issues(username:str):
+    update_proxies()
     page = 1
     issues = []
     while True:
@@ -133,6 +140,7 @@ def get_issues(username:str):
     return issues
 
 def get_commits(username:str, just_repos:bool=True):
+    update_proxies()
     page = 1
     commits = []
     while True:
@@ -177,6 +185,7 @@ def get_commits(username:str, just_repos:bool=True):
     return list(set(commits))
 
 def get_user_profile(username:str, email:bool=True):
+    update_proxies()
     try:
         res = session.get(f"https://api.github.com/users/{username}")
         res.raise_for_status()
@@ -195,6 +204,7 @@ def get_user_profile(username:str, email:bool=True):
             return 429
 
 def get_event_emails(username: str):
+    update_proxies()
     page = 1
     emails = []
 
@@ -243,6 +253,7 @@ def get_event_emails(username: str):
     return list(set(emails))
 
 def get_emails(repo:str, username:str=None):
+    update_proxies()
     emails = []
     page = 1
 

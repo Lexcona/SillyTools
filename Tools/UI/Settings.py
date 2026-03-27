@@ -87,3 +87,33 @@ def menu_settings():
         wrap=0
     )
     dpg.add_listbox(list(themes.theme_dict.keys()), default_value=list(themes.theme_dict.keys())[0], tag="menu_settings.theme", callback=Tools.Backend.Settings.set_theme)
+
+    dpg.add_text(
+        default_value="Proxies",
+        color=themes.current_theme["pallet"].Mauve,
+        wrap=0
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/http", ""),
+        tag="menu_settings.http_proxy_input",
+        hint="HTTP",
+        label="HTTP",
+        width=300,
+        callback=Tools.Backend.Settings.set_http_proxy
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/https", ""),
+        tag="menu_settings.https_proxy_input",
+        hint="HTTPS",
+        label="HTTPS",
+        width=300,
+        callback=Tools.Backend.Settings.set_https_proxy
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/socks5", ""),
+        tag="menu_settings.socks5_proxy_input",
+        hint="SOCKS5",
+        label="SOCKS5",
+        width=300,
+        callback=Tools.Backend.Settings.set_socks5_proxy
+    )

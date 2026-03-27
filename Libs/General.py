@@ -1,4 +1,7 @@
 import os
+import pwd
+import ctypes
+import platform
 
 from Libs.ConfigManager import ConfigManager
 import dearpygui.dearpygui as dpg
@@ -17,6 +20,29 @@ def color_fixer(color:list):
         cool.append(i/255)
     return cool
 
+
+def get_user_full_name():
+    system = platform.system()
+
+    if system == "Windows":
+        GetUserNameExW = ctypes.windll.secur32.GetUserNameExW
+        NameDisplay = 3
+
+        size = ctypes.pointer(ctypes.c_ulong(0))
+        GetUserNameExW(NameDisplay, None, size)
+        name_buffer = ctypes.create_unicode_buffer(size.contents.value)
+        GetUserNameExW(NameDisplay, name_buffer, size)
+        return name_buffer.value.strip()
+
+    else:
+        try:
+            pw_entry = pwd.getpwuid(os.geteuid())
+            full_name = pw_entry.pw_gecos.split(',')[0].strip()
+            if full_name:
+                return full_name
+            return pw_entry.pw_name
+        except (ImportError, KeyError, IndexError):
+            return os.environ.get('USER') or os.environ.get('USERNAME') or "Unknown User"
 
 def replace_placeholders(text:str, vars:dict):
     for key, value in vars.items():

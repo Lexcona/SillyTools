@@ -15,6 +15,7 @@ def get_webhook_info():
         themes.set_colored_result(result_thing, "you kinda forgot the url...", "Red")
         return
 
+    themes.set_colored_result(result_thing, "getting info...", "Mauve")
     try:
         web_info = DiscordWebhook.get_info(url)
         if web_info:
@@ -42,6 +43,7 @@ def send_webhook_message():
     if not message:
         themes.set_colored_result(result_thing, "you kinda forgot the message...", "Red")
         return
+    themes.set_colored_result(result_thing, "sending message...", "Mauve")
 
     try:
         DiscordWebhook.send_message(url, message)
@@ -72,6 +74,7 @@ def edit_webhook():
         except Exception:
             themes.set_colored_result(result_thing, "id no real :(", "Red")
             return
+    themes.set_colored_result(result_thing, "editing webhook...", "Mauve")
 
     try:
         DiscordWebhook.modify_webhook(url, name, avatar, channel_id)
@@ -89,6 +92,7 @@ def delete_webhook():
         themes.set_colored_result(result_thing, "you kinda forgot the url...", "Red")
         return
 
+    themes.set_colored_result(result_thing, "deleting webhook...", "Mauve")
     try:
         DiscordWebhook.delete_webhook(url)
 

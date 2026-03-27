@@ -14,6 +14,7 @@ def minecraft_lookup():
         themes.set_colored_result(result_text, "you kinda forgot the username...", "Red")
         return
 
+    themes.set_colored_result(result_text, "getting user...", "Mauve")
     user_data = Mojang.get_skin_data(username)
 
     if user_data == "Not Found":

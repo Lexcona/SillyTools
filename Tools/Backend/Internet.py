@@ -1,4 +1,5 @@
 import os
+import random
 import ssl
 import time
 import whois
@@ -41,10 +42,12 @@ def search_domain_nameservers(sender, app_data, user_data):
         themes.set_colored_result(result_text, "you kinda forgot the domain...", "Red")
         return
 
+    themes.set_colored_result(result_text, "finding nameservers...", "Mauve")
     try:
-        nameservers_text = ""
-        for nameserver in dns.resolver.resolve(domain, 'NS'):
-            nameservers_text += nameserver.to_text() + "\n"
+        with Libs.Networking.proxy_socket(Libs.Networking.get_proxies()):
+            nameservers_text = ""
+            for nameserver in dns.resolver.resolve(domain, 'NS'):
+                nameservers_text += nameserver.to_text() + "\n"
         themes.set_colored_result(result_text, f"found {domain}'s nameservers :3\n{nameservers_text}", "Mauve")
     except Exception as e:
         if "does not exist" in str(e):
@@ -75,37 +78,38 @@ def ip_cert_lookup(sender, app_data, user_data):
     san_domains = []
 
     try:
-        themes.set_colored_result(result_text,f"creating connection at {ip_addr}:{port}...","Mauve")
-        with socket.create_connection((ip_addr, port), timeout=30) as sock:
-            with context.wrap_socket(sock, server_hostname=ip_addr) as ssock:
-                themes.set_colored_result(result_text, f"connected at {ip_addr}:{port} :3", "Green")
-                der_cert = ssock.getpeercert(binary_form=True)
-                if not der_cert:
-                    themes.set_colored_result(result_text, "got no cert :(", "Red")
-                    return
+        themes.set_colored_result(result_text,f"connecting to {ip_addr}:{port}...","Mauve")
+        with Libs.Networking.proxy_socket(Libs.Networking.get_proxies()):
+            with socket.create_connection((ip_addr, port), timeout=30) as sock:
+                with context.wrap_socket(sock, server_hostname=ip_addr) as ssock:
+                    themes.set_colored_result(result_text, f"connected at {ip_addr}:{port} :3", "Green")
+                    der_cert = ssock.getpeercert(binary_form=True)
+                    if not der_cert:
+                        themes.set_colored_result(result_text, "got no cert :(", "Red")
+                        return
 
-                themes.set_colored_result(result_text, f"loading cert...", "Mauve")
-                cert = x509.load_der_x509_certificate(der_cert)
+                    themes.set_colored_result(result_text, f"loading cert...", "Mauve")
+                    cert = x509.load_der_x509_certificate(der_cert)
 
-                try:
-                    cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-                    if cn:
-                        common_name = cn[0].value
-                        themes.set_colored_result(result_text, f"found common name {common_name} :3", "Green")
-                except Exception:
-                    themes.set_colored_result(result_text, f"common name no found :(", "Red")
-                    pass
+                    try:
+                        raw_common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+                        if raw_common_name:
+                            common_name = raw_common_name[0].value
+                            themes.set_colored_result(result_text, f"found common name {common_name} :3", "Green")
+                    except Exception:
+                        themes.set_colored_result(result_text, f"common name no found :(", "Red")
+                        pass
 
-                try:
-                    san_ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
-                    for name in san_ext.value.get_values_for_type(x509.DNSName):
-                        themes.set_colored_result(result_text, f"found domain {name} :3", "Green")
-                        san_domains.append(name)
-                    for name in san_ext.value.get_values_for_type(x509.IPAddress):
-                        themes.set_colored_result(result_text, f"found domain {str(name)} :3", "Green")
-                        san_domains.append(str(name))
-                except x509.ExtensionNotFound:
-                    pass
+                    try:
+                        san_ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+                        for name in san_ext.value.get_values_for_type(x509.DNSName):
+                            themes.set_colored_result(result_text, f"found domain {name} :3", "Green")
+                            san_domains.append(name)
+                        for name in san_ext.value.get_values_for_type(x509.IPAddress):
+                            themes.set_colored_result(result_text, f"found domain {str(name)} :3", "Green")
+                            san_domains.append(str(name))
+                    except x509.ExtensionNotFound:
+                        pass
     except ssl.SSLError as e:
         themes.set_colored_result(result_text, "ssl went boom :(", "Red")
         console.print(f"SSL error:\n{e}", style="red")
@@ -136,69 +140,71 @@ def dns_dump(sender, app_data, user_data):
         'A', 'AAAA', 'CNAME', 'MX', 'NS', 'SOA', 'TXT', 'PTR', 'SRV', 'CAA', 'DNSKEY', 'DS', 'TLSA', 'OPENPGPKEY', 'SSHFP', 'RP', 'LOC', 'HINFO', 'NAPTR', 'CERT', 'SPF', 'DMARC', 'DKIM',
     ]
 
-    resolver = dns.resolver.Resolver()
-    resolver.timeout = 5
-    resolver.lifetime = 6
+    themes.set_colored_result(result_text, "getting dns records...", "Mauve")
+    with Libs.Networking.proxy_socket(Libs.Networking.get_proxies()):
+        resolver = dns.resolver.Resolver()
+        resolver.timeout = 5
+        resolver.lifetime = 6
 
-    found_any = False
+        found_any = False
 
-    dns_text = "found dns records :3\n"
+        dns_text = "found dns records :3\n"
 
-    for rtype in record_types:
-        try:
-            qname = domain
-            if rtype == 'DMARC':
-                qname = f"_dmarc.{domain}"
-            elif rtype == 'DKIM':
-                print("DKIM: needs selector (skipping generic query)")
-                continue
+        for rtype in record_types:
+            try:
+                qname = domain
+                if rtype == 'DMARC':
+                    qname = f"_dmarc.{domain}"
+                elif rtype == 'DKIM':
+                    print("DKIM: needs selector (skipping generic query)")
+                    continue
 
-            themes.set_colored_result(result_text, f"resolving {rtype}...", "Mauve")
-            answers = resolver.resolve(qname, rtype)
+                themes.set_colored_result(result_text, f"resolving {rtype}...", "Mauve")
+                answers = resolver.resolve(qname, rtype)
 
-            found_any = True
-            dns_text += f"\n{rtype} records:\n"
-            for rdata in answers:
-                if rtype in ('A', 'AAAA'):
-                    service_tag = Libs.Networking.service_tag(rdata.address)
-                    dns_text += f"{rdata.address} {service_tag}\n"
-                elif rtype == 'MX':
-                    dns_text += f"priority {rdata.preference} > {rdata.exchange}\n"
-                elif rtype == 'TXT':
-                    dns_text += f"{rdata.to_text().strip('"')}\n"
-                elif rtype == 'SOA':
-                    dns_text += f"primary nameserver: {rdata.mname}\n"
-                    dns_text += f"admin:    {rdata.rname}\n"
-                    dns_text += f"serial:   {rdata.serial}\n"
-                else:
-                    dns_text += f"{rdata.to_text()}\n"
+                found_any = True
+                dns_text += f"\n{rtype} records:\n"
+                for rdata in answers:
+                    if rtype in ('A', 'AAAA'):
+                        service_tag = Libs.Networking.service_tag(rdata.address)
+                        dns_text += f"{rdata.address} {service_tag}\n"
+                    elif rtype == 'MX':
+                        dns_text += f"priority {rdata.preference} > {rdata.exchange}\n"
+                    elif rtype == 'TXT':
+                        dns_text += f"{rdata.to_text().strip('"')}\n"
+                    elif rtype == 'SOA':
+                        dns_text += f"primary nameserver: {rdata.mname}\n"
+                        dns_text += f"admin: {rdata.rname}\n"
+                        dns_text += f"serial: {rdata.serial}\n"
+                    else:
+                        dns_text += f"{rdata.to_text()}\n"
 
-        except dns.resolver.NoAnswer:
-            pass
-        except dns.resolver.NXDOMAIN:
-            themes.set_colored_result(result_text, "domain no exist :(", "Red")
-            return
-        except dns.resolver.Timeout:
-            themes.set_colored_result(result_text, f"timed out on {rtype} :(", "Red")
-        except DNSException as e:
-            themes.set_colored_result(result_text, f"dns went boom :(", "Red")
-            console.print(e)
+            except dns.resolver.NoAnswer:
+                pass
+            except dns.resolver.NXDOMAIN:
+                themes.set_colored_result(result_text, "domain no exist :(", "Red")
+                return
+            except dns.resolver.Timeout:
+                themes.set_colored_result(result_text, f"timed out on {rtype} :(", "Red")
+            except DNSException as e:
+                themes.set_colored_result(result_text, f"dns went boom :(", "Red")
+                console.print(e)
 
     themes.set_colored_result(result_text, dns_text, "Mauve")
 
     if not found_any:
         themes.set_colored_result(result_text, "no find records :(", "Red")
 
-def make_absolute(base_url: str, raw_link: str):
-    if not raw_link:
+def url_clean(base_url: str, link: str):
+    if not link:
         return None
 
-    if raw_link.startswith(('#', 'data:', 'javascript:', 'mailto:', 'tel:')):
+    if link.startswith(('#', 'data:', 'javascript:', 'mailto:', 'tel:')):
         return None
 
     try:
-        abs_url = urllib.parse.urljoin(base_url, raw_link.strip())
-        parsed = urllib.parse.urlparse(abs_url)
+        url = urllib.parse.urljoin(base_url, link.strip())
+        parsed = urllib.parse.urlparse(url)
 
         if parsed.scheme not in ('http', 'https'):
             return None
@@ -217,7 +223,6 @@ def make_absolute(base_url: str, raw_link: str):
         return None
 
 def classify_tag(tag: bs4.Tag):
-    url_part = None
     kind = ""
 
     if tag.name == "a":
@@ -251,60 +256,47 @@ def classify_tag(tag: bs4.Tag):
 
     return url_part.strip(), kind
 
+
 def site_mapper(sender, app_data, user_data):
+    max_threads = 16
+    timeout = 10
     result_widget = "internet.site_mapper_result_text"
 
-    raw_input = dpg.get_value("internet.site_mapper_domain_input").strip()
-    if not raw_input:
+    url = dpg.get_value("internet.site_mapper_domain_input").strip()
+    if not url:
         themes.set_colored_result(result_widget, "you kinda forgot the url...", "Red")
         return
 
-    start_url = raw_input
-    if '://' not in start_url and not start_url.startswith('/'):
-        start_url = 'https://' + start_url.lstrip()
-
-    parsed = urllib.parse.urlparse(start_url)
-    if not parsed.scheme or parsed.scheme not in ('http', 'https'):
-        themes.set_colored_result(result_widget, "url no formated correctly :(", "Red")
-        return
-
-    start_url = urllib.parse.urlunparse((
-        parsed.scheme,
-        parsed.netloc.lower(),
-        parsed.path or '/',
-        parsed.params,
-        parsed.query,
-        ''
-    ))
-
-    MAX_PAGES    = 2000000
-    MAX_WORKERS  = 16
-    TIMEOUT      = 10
-
+    start_url = Libs.Networking.fix_url(url)
     domain = urllib.parse.urlparse(start_url).netloc
 
     session = requests.Session()
     session.headers["User-Agent"] = Libs.Networking.get_user_agent()
-    session.timeout = TIMEOUT
+    session.proxies = Libs.Networking.get_proxies()
 
-    visited     = set()
-    to_visit    = [start_url]
-    discovered  = {start_url}
-    all_resources = {
-        "page": set(), "image": set(), "video": set(), "audio": set(),
-        "script": set(), "stylesheet": set(), "iframe": set(), "other": set(),
+    did_urls = set()
+    queue = [start_url]
+    found_urls = {start_url}
+
+    all_cats = {
+        "page": set(),
+        "image": set(),
+        "video": set(),
+        "audio": set(),
+        "script": set(),
+        "stylesheet": set(),
+        "iframe": set(),
+        "other": set()
     }
 
     lock = threading.Lock()
-    processed_count = 0
+    count_thing = 0
 
-    themes.set_colored_result(result_widget, f"starting threaded crawl ({MAX_WORKERS} workers) from {start_url}...", "Mauve")
+    themes.set_colored_result(result_widget, f"crawling from {start_url}...", "Mauve")
 
     def fetch_and_parse(url):
-        nonlocal processed_count
-
         try:
-            res = session.get(url)
+            res = session.get(url, timeout=timeout)
             res.raise_for_status()
 
             if "text/html" not in res.headers.get("content-type", "").lower():
@@ -313,100 +305,80 @@ def site_mapper(sender, app_data, user_data):
             soup = BeautifulSoup(res.text, "html.parser")
 
             new_pages = set()
-            resources = {
-                "page": set(),
-                "image": set(),
-                "video": set(),
-                "audio": set(),
-                "script": set(),
-                "stylesheet": set(),
-                "iframe": set(),
-                "other": set(),
-            }
+            cats = {}
+            for cat in all_cats:
+                cats[cat] = set()
 
             for tag in soup.find_all():
                 link_text, kind = classify_tag(tag)
                 if not link_text:
                     continue
 
-                abs_link = make_absolute(url, link_text)
-                if not abs_link:
+                link = url_clean(url, link_text)
+                if not link:
                     continue
 
-                link_domain = urllib.parse.urlparse(abs_link).netloc
+                if kind in cats:
+                    cats[kind].add(link)
 
-                if kind in resources:
-                    resources[kind].add(abs_link)
+                if kind == "page" and urllib.parse.urlparse(link).netloc == domain:
+                    new_pages.add(link)
 
-                if kind == "page" and link_domain == domain:
-                    new_pages.add(abs_link)
-
-            return url, new_pages, resources
+            return url, new_pages, cats
 
         except Exception as e:
-            print(f"fetch_and_parse failed for {url}: {type(e).__name__} - {e}")
+            console.print(e, style="red")
             return url, set(), {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        while to_visit and processed_count < MAX_PAGES:
-            current_batch = []
-            batch_size = min(MAX_WORKERS * 2, len(to_visit))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        while queue:
+            futures = []
 
-            for _ in range(batch_size):
-                if to_visit:
-                    url = to_visit.pop(0)
-                    if url not in visited:
-                        current_batch.append(executor.submit(fetch_and_parse, url))
+            for i in range(min(max_threads, len(queue))):
+                if queue:
+                    next_url = queue.pop(0)
+                    if next_url not in did_urls:
+                        futures.append(executor.submit(fetch_and_parse, next_url))
 
-            if not current_batch:
+            if not futures:
                 break
 
-            for future in concurrent.futures.as_completed(current_batch):
-                url, new_pages, res_dict = future.result()
+            for future in concurrent.futures.as_completed(futures):
+                url_done, new_pages, res_dict = future.result()
 
                 with lock:
-                    if url in visited:
+                    if url_done in did_urls:
                         continue
-                    visited.add(url)
-                    processed_count += 1
+
+                    did_urls.add(url_done)
+                    count_thing += 1
 
                     for cat, links in res_dict.items():
-                        all_resources[cat].update(links)
+                        all_cats[cat].update(links)
 
-                    added_count = 0
-                    for p in new_pages:
-                        if p not in discovered and p not in visited:
-                            discovered.add(p)
-                            to_visit.append(p)
-                            added_count += 1
+                    for page in new_pages:
+                        if page not in found_urls:
+                            found_urls.add(page)
+                            queue.append(page)
 
-                    if processed_count % 5 == 0 or added_count > 0:
-                        msg = f"crawled {processed_count} pages | discovered {len(discovered)} urls"
-                        if added_count > 0:
-                            msg += f" (+{added_count} new)"
-                        themes.set_colored_result(result_widget, msg, "Mauve")
+                    themes.set_colored_result(result_widget, f"crawled: {count_thing}\nqueue: {len(queue)}\ntotal unique: {len(found_urls)}", "Mauve")
 
-    total_found = sum(len(v) for v in all_resources.values())
+    info_lines = []
+    info_lines.append(f"crawled {count_thing} pages")
+    info_lines.append(f"found {len(found_urls)} unique urls\n")
 
-    summary_lines = []
-    summary_lines.append(f"crawled {processed_count} pages")
-    summary_lines.append(f"found {total_found} things\n")
+    for cat, urls in sorted(all_cats.items(), key=lambda x: -len(x[1])):
+        if urls:
+            info_lines.append(f"{cat} ({len(urls)} found):")
+            for ex in sorted(urls):
+                info_lines.append(f"  {ex}")
+            info_lines.append("")
 
-    for cat, urls in sorted(all_resources.items(), key=lambda x: -len(x[1])):
-        if not urls:
-            continue
-        count = len(urls)
-        summary_lines.append(f"{cat} ({count} found):")
-        for ex in sorted(urls):
-            summary_lines.append(f"  {ex}")
-        summary_lines.append("")
+    info_lines.append("crawled pages:")
+    for u in sorted(did_urls):
+        info_lines.append(f"  {u}")
 
-    summary_lines.append("found pages:")
-    for u in sorted(visited):
-        summary_lines.append(f"  {u}")
-
-    final_text = "\n".join(summary_lines).strip()
-    themes.set_colored_result(result_widget, final_text, "Mauve")
+    themes.set_colored_result(result_widget, "\n".join(info_lines).strip(), "Mauve")
 
 def tag_dumper():
     result_text = "internet.tag_dumper_result_text"
@@ -416,8 +388,10 @@ def tag_dumper():
         themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
         return
 
-    if not "://" in url:
-        url = "https://"+url
+    url = Libs.Networking.fix_url(url)
+    if not url:
+        themes.set_colored_result(result_text, "no real url :(", "Red")
+        return
 
     output = dpg.get_value("internet.tag_dumper_output_input").strip()
     if not output:
@@ -432,9 +406,10 @@ def tag_dumper():
     tag_count = {
 
     }
+    themes.set_colored_result(result_text, "getting tags...", "Mauve")
 
     try:
-        res = requests.get(url, headers=headers)
+        res = requests.get(url, headers=headers, proxies=Libs.Networking.get_proxies())
         res.raise_for_status()
 
         soup = BeautifulSoup(res.content, "html.parser")
@@ -473,8 +448,10 @@ def method_scanner():
         themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
         return
 
-    if not "://" in url:
-        url = "https://"+url
+    url = Libs.Networking.fix_url(url)
+    if not url:
+        themes.set_colored_result(result_text, "no real url :(", "Red")
+        return
 
     headers = {
         "User-Agent": Libs.Networking.get_user_agent()
@@ -496,7 +473,7 @@ def method_scanner():
 
     for method in methods:
         themes.set_colored_result(result_text, f"checking {method}...", "Mauve")
-        res = requests.request(method, url, allow_redirects=True, headers=headers)
+        res = requests.request(method, url, allow_redirects=True, headers=headers, proxies=Libs.Networking.get_proxies())
 
         if not res.status_code in (404, 405, 501):
             themes.set_colored_result(result_text, f"{method} valid :3", "Mauve")
@@ -523,8 +500,9 @@ def url_checker():
     timed_urls = []
 
     for url in urls:
+        themes.set_colored_result(result_text, f"checking {url}...", "Mauve")
         url_check = Libs.Networking.check_url(url)
-        if url_check == True:
+        if url_check:
             themes.set_colored_result(result_text, f"{url} valid :3", "Mauve")
             valid_urls.append(url)
         elif url_check == "Timed Out":
@@ -533,6 +511,7 @@ def url_checker():
         else:
             themes.set_colored_result(result_text, f"{url} invalid :(", "Red")
             invalid_urls.append(url)
+        time.sleep(random.randint(2, 50)/10)
     if valid_urls:
         url_text = "found valid urls :3\n\nvalid urls:\n"
         for url in valid_urls:
@@ -547,11 +526,15 @@ def url_checker():
     else:
         themes.set_colored_result(result_text, "no valid urls :(", "Red")
 
+# Had a use but decided to leave it useless just incase.
 def clean_headers(headers:CaseInsensitiveDict[str]):
     better_headers = {}
     usual_headers = [
 
     ]
+
+    # This finds all the keys in the headers dictionary to see if it's a usual header that shows for web requests.
+    # Basically a useless header remover.
     for key, value in headers.items():
         if not key.lower() in usual_headers:
             better_headers[key] = value
@@ -586,17 +569,22 @@ def website_info():
         "User-Agent": Libs.Networking.get_user_agent()
     }
 
-    res = requests.get(url, headers=headers, allow_redirects=True, stream=True)
+    themes.set_colored_result(result_text, "getting web info...", "Mauve")
+    try:
+        res = requests.get(url, headers=headers, allow_redirects=True, stream=True, proxies=Libs.Networking.get_proxies())
 
-    info_text = "found web info :3\n"
-    info_text += "=======================\n"
+        info_text = "found web info :3\n"
+        info_text += "=======================\n"
 
-    info_text += web_info_text_thing(res)
+        info_text += web_info_text_thing(res)
 
-    for redirect in res.history:
-        info_text += web_info_text_thing(redirect)
+        for redirect in res.history:
+            info_text += web_info_text_thing(redirect)
 
-    themes.set_colored_result(result_text, info_text, "Mauve")
+        themes.set_colored_result(result_text, info_text, "Mauve")
+    except Exception as e:
+        console.print(e, style="red")
+        themes.set_colored_result(result_text, "thing went boom :(", "Mauve")
 
 def whois_search():
     result_text = "internet.whois_search_result_text"
@@ -608,6 +596,7 @@ def whois_search():
 
     domain = domain.split("://")[-1].split("/")[0]
 
+    themes.set_colored_result(result_text, "getting whois data...", "Mauve")
     try:
         whois_data = whois.whois(domain)
 
