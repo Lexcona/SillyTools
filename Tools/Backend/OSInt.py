@@ -2,16 +2,14 @@ import time
 import random
 
 import requests
-import dns.resolver
 import dearpygui.dearpygui as dpg
 
 from rich.console import Console
 
-import ColorPallets.Catpuccin.Mocha
 import Libs.Networking
 import Libs.General
 
-from Libs import GitHub
+from Libs.Wrappers import GitHub
 from Libs import Networking
 
 from Libs.ConfigManager import config
@@ -147,13 +145,17 @@ search_list = [
         "name": "GitHub",
         "url": "https://api.github.com/users/[username]",
         "not_found_text": "Not Found",
-        "user_format": "https://github.com/[username]"
+        "user_format": "https://github.com/[username]",
+        "extra_info": None,
+        "special": None
     },
     {
         "name": "Minecraft",
         "url": "https://api.mojang.com/users/profiles/minecraft/[username]",
         "not_found_text": "Not Found",
-        "user_format": "[username]"
+        "user_format": "[username]",
+        "extra_info": None,
+        "special": None
     },
 ]
 

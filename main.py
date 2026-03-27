@@ -2,6 +2,7 @@ import os
 
 import dearpygui.dearpygui as dpg
 
+import Libs.General
 from ColorPallets.Catpuccin import Mocha
 
 from Libs.ConfigManager import config
@@ -17,6 +18,7 @@ import Tools.UI.OSInt
 import Tools.UI.Settings
 import Tools.UI.Internet
 import Tools.UI.Discord
+import Tools.UI.GeneralInfo
 import Tools.UI.Random
 
 with dpg.font_registry():
@@ -111,6 +113,10 @@ def show_discord():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, width=500, height=300, parent=hor_group)
 
+def show_general_info():
+    with dpg.group(horizontal=True, parent="content_area") as hor_group:
+        create_tool("Minecraft Lookup", Tools.UI.GeneralInfo.minecraft_lookup, width=500, height=300, parent=hor_group)
+
 def show_random():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("JSON Formater", Tools.UI.Random.json_formater, width=500, height=300, parent=hor_group)
@@ -120,6 +126,7 @@ def show_random():
 add_catagory("Home", show_home)
 add_catagory("OSInt", show_osint)
 add_catagory("Internet", show_internet)
+add_catagory("General Info", show_general_info)
 add_catagory("Random", show_random)
 #add_catagory("Discord", show_discord)
 add_catagory("Settings", show_settings)

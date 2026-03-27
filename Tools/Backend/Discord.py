@@ -1,10 +1,8 @@
-from readline import get_line_buffer
-
 import dearpygui.dearpygui as dpg
 
 import themes
 
-from Libs import DiscordWebhook
+from Libs.Wrappers import DiscordWebhook
 
 from rich.console import Console
 

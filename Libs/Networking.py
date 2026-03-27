@@ -205,14 +205,12 @@ def get_cloudflare_ips():
 # Yes ths part is GPTed, I was too lazy to find the api and make a function to get all the GitHub page IPs.
 def get_github_pages_networks():
     try:
-        r = requests.get("https://api.github.com/meta", timeout=5)
-        r.raise_for_status()
-        data = r.json()
+        res = requests.get("https://api.github.com/meta", timeout=5)
+        res.raise_for_status()
+        data = res.json()
         pages_cidrs = data.get("pages", [])
         return {ipaddress.ip_network(c) for c in pages_cidrs}
     except Exception as e:
-        print(f"GitHub meta fetch failed: {e}")
-        # Fallback to hardcoded
         return GITHUB_PAGES_IPS
 
 def service_tag(ip:str):
