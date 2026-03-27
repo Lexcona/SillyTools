@@ -5,4 +5,6 @@ __pycache__/
 export/
 dist/
 build/
+builds/
+desilly/
 *.spec

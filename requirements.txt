@@ -5,6 +5,6 @@ requests[socks]
 dearpygui
 dnspython
 cryptography
-pywebcopy
 python-whois
 pyinstaller
+pillow

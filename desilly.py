@@ -1,24 +1,68 @@
 import os
 import shutil
+from pathlib import Path
 
-out_dir = "desilly"
-scan_dir = "./"
+OUT_DIR = Path("desilly")
+SCAN_DIR = Path(".")
 
-if os.path.exists(out_dir):
-    shutil.rmtree(out_dir)
+# Clean previous output
+if OUT_DIR.exists():
+    shutil.rmtree(OUT_DIR)
+    print("Cleaned old desilly folder")
 
-for path, directories, files in os.walk(scan_dir):
-    thingy = os.path.join(out_dir, path)
-    os.makedirs(thingy, exist_ok=True)
-    if not ".venv" in path and not "__pycache__" in path and not ".git" in path and not ".idea" in path:
-        for file in files:
-            if not file in ("desilly.py", ".gitignore"):
-                cool = os.path.join(thingy, file)
+print("Starting desilly process...")
 
-                with open(cool, "r") as f:
-                    data = f.read()
+for root, dirs, files in os.walk(SCAN_DIR, topdown=True):
+    # === BETTER SKIPPING ===
+    # Skip entire directories we don't want
+    dirs[:] = [d for d in dirs if d not in (".venv", "__pycache__", ".git", ".idea")]
 
-                data = data.replace(" :3", "").replace(":3", "").replace(" :(", "").replace(":(", "")
+    # Also skip if we're already inside one of those folders
+    if any(skip in Path(root).parts for skip in [".venv", "__pycache__", ".git", ".idea"]):
+        continue
 
-                with open(cool, "w+") as f:
-                    f.write(data)
+    # Get clean relative path (this fixes the nesting bug)
+    try:
+        rel_path = Path(root).relative_to(SCAN_DIR)
+    except ValueError:
+        rel_path = Path("")
+
+    output_dir = OUT_DIR / rel_path
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in files:
+        # Skip the script itself and .gitignore
+        if file in ("desilly.py", ".gitignore"):
+            continue
+
+        src_file = Path(root) / file
+        dst_file = output_dir / file
+
+        try:
+            data = src_file.read_bytes()
+
+            # Try to treat as text and remove :3 / :(
+            try:
+                text = data.decode("utf-8")
+                original_len = len(text)
+
+                text = (text
+                        .replace(" :3", "")
+                        .replace(":3", "")
+                        .replace(" :(", "")
+                        .replace(":(", "")
+                        )
+
+                if len(text) != original_len:
+                    print(f"Cleaned :3/:( from {src_file}")
+
+                data = text.encode("utf-8")
+            except UnicodeDecodeError:
+                pass  # Binary file (images, etc.) - copy as-is
+
+            dst_file.write_bytes(data)
+
+        except Exception as e:
+            print(f"Error processing {src_file}: {e}")
+
+print("Done! Check the 'desilly' folder.")
