@@ -7,3 +7,4 @@ dnspython
 cryptography
 pywebcopy
 python-whois
+pyinstaller

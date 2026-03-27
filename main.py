@@ -22,9 +22,9 @@ import Tools.UI.GeneralInfo
 import Tools.UI.Random
 
 with dpg.font_registry():
-    big_font = dpg.add_font("Fonts/Press_Start_2P/PressStart2P-Regular.ttf", 17)
-    default_font = dpg.add_font("Fonts/determination-mono-web-font/DeterminationSansWebRegular-369X.ttf", 20)
-    small_font = dpg.add_font("Fonts/determination-mono-web-font/DeterminationSansWebRegular-369X.ttf", 16)
+    big_font = dpg.add_font(Libs.General.resource_path("Fonts/Press_Start_2P/PressStart2P-Regular.ttf"), 17)
+    default_font = dpg.add_font(Libs.General.resource_path("Fonts/determination-mono-web-font/DeterminationSansWebRegular-369X.ttf"), 20)
+    small_font = dpg.add_font(Libs.General.resource_path("Fonts/determination-mono-web-font/DeterminationSansWebRegular-369X.ttf"), 16)
 
 dpg.bind_font(default_font)
 
@@ -38,7 +38,7 @@ dpg.create_viewport(
     height=720,
     resizable=False
 )
-dpg.set_viewport_small_icon("Assets/icon.png")
+dpg.set_viewport_small_icon(Libs.General.resource_path("Assets/icon.png"))
 
 catagories = []
 

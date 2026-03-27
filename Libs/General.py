@@ -51,3 +51,14 @@ def replace_placeholders(text:str, vars:dict):
 
 def dir_callback(sender, app_data, user_data):
     dpg.set_value(user_data, app_data["file_path_name"])
+
+import sys
+import os
+
+# pyinstaller makes dpg go stupid
+def resource_path(relative_path: str) -> str:
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)

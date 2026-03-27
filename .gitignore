@@ -3,3 +3,6 @@ __pycache__/
 .idea/
 .venv/
 export/
+dist/
+build/
+*.spec
