@@ -72,11 +72,10 @@ def create_tool(name: str, build_ui_func, width=450, height=300, parent=None):
 def show_home():
     dpg.add_spacer(height=20, parent="content_area")
     dpg.add_text(
-        f"""Welcome {Libs.General.get_user_full_name()}, this is just a silly little tool to just to let me do silly things.
+        f"""Welcome {Libs.General.get_user_full_name()}, this is just a silly little tool to just to let me do silly things :3.
             Also to any federal agents looking at this...
             THIS TOOL SHOULD NOT BE USED AGAINST ANYTHING WITHOUT THE PERMISSION OF THE PERSON OR OWNER.
-            I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.
-            Also cash if you are reading this, this is not evidence of me being a furry femboy.""".replace("  ", ""),
+            I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.""".replace("  ", ""),
         wrap=0,
         parent="content_area"
     )
