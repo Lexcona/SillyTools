@@ -108,6 +108,7 @@ def show_internet():
         create_tool("Website Info", Tools.UI.Internet.website_info, width=500, height=300, parent=hor_group)
     with dpg.group(horizontal=True, parent="content_area") as hor_group:
         create_tool("WHOIS Search", Tools.UI.Internet.whois_search, width=500, height=300, parent=hor_group)
+        create_tool("Email Scrapper", Tools.UI.Internet.email_scrapper, width=500, height=300, parent=hor_group)
 
 def show_discord():
     with dpg.group(horizontal=True, parent="content_area") as hor_group:

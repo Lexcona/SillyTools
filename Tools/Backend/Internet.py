@@ -1,9 +1,10 @@
+import re
 import os
-import random
 import ssl
 import time
 import whois
 import socket
+import random
 import threading
 import urllib.parse
 import concurrent.futures
@@ -562,8 +563,10 @@ def website_info():
         themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
         return
 
-    if not "://" in url:
-        url = "https://" + url
+    url = Libs.Networking.fix_url(url)
+    if not url:
+        themes.set_colored_result(result_text, "url no real :(", "Red")
+        return
 
     headers = {
         "User-Agent": Libs.Networking.get_user_agent()
@@ -616,3 +619,35 @@ def whois_search():
     except Exception as e:
         themes.set_colored_result(result_text, "thing went boom :(", "Red")
         console.print(e, style="red")
+
+def email_scrapper():
+    result_text = "internet.email_scrapper_result_text"
+
+    url = dpg.get_value("internet.email_scrapper_url_input").strip()
+    if not url:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    url = Libs.Networking.fix_url(url)
+    if not url:
+        themes.set_colored_result(result_text, "url no real :(", "Red")
+        return
+
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+
+    themes.set_colored_result(result_text, f"finding emails...", "Mauve")
+    try:
+        res = requests.get(url, headers={"User-Agent": Libs.Networking.get_user_agent()}, allow_redirects=True)
+        if res.status_code == 404:
+            themes.set_colored_result(result_text, "url no found :(", "Red")
+            return
+        res.raise_for_status()
+
+        matches = re.findall(email_regex, res.text)
+        if matches:
+            themes.set_colored_result(result_text, f"found emails :3\n{'\n'.join(matches)}", "Mauve")
+        else:
+            themes.set_colored_result(result_text, "emails no found :(", "Red")
+    except Exception as e:
+        console.print(e, style="red")
+        themes.set_colored_result(result_text, "thing went boom", "Red")
