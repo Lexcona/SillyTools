@@ -17,6 +17,7 @@ import Tools.UI.Internet
 import Tools.UI.Discord
 import Tools.UI.GeneralInfo
 import Tools.UI.Random
+import Tools.UI.Dumpers
 
 from rich.console import Console
 
@@ -62,17 +63,21 @@ def set_catagory(sender, app_data, user_data):
     if not selected_category or selected_category not in catagories:
         return
 
-    tools = catagories[selected_category]["tools"]
+    texttt = catagories[selected_category]["text"]
+    if texttt == "":
+        tools = catagories[selected_category]["tools"]
 
-    for i in range(0, len(tools), 2):
-        with dpg.group(horizontal=True, parent="content_area") as hor_group:
-            tool1 = tools[i]
-            create_tool(tool1["name"], tool1["tool"], width=500, height=300, parent=hor_group)
+        for i in range(0, len(tools), 2):
+            with dpg.group(horizontal=True, parent="content_area") as hor_group:
+                tool1 = tools[i]
+                create_tool(tool1["name"], tool1["tool"], width=500, height=300, parent=hor_group)
 
-            if i + 1 < len(tools):
-                tool2 = tools[i + 1]
-                create_tool(tool2["name"], tool2["tool"], width=500, height=300, parent=hor_group)
-
+                if i + 1 < len(tools):
+                    tool2 = tools[i + 1]
+                    create_tool(tool2["name"], tool2["tool"], width=500, height=300, parent=hor_group)
+    else:
+        dpg.add_spacer(height=20, parent="content_area")
+        dpg.add_text(texttt, wrap=0, parent="content_area")
 
 def create_tool(name: str, build_ui_func, width=450, height=300, parent=None):
     with dpg.child_window(
@@ -96,9 +101,10 @@ I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.""".replace("  ", "")
 add_catagory("Home", welcome_text)
 add_catagory("OSInt")
 add_catagory("Internet")
+#add_catagory("Dumpers")
 add_catagory("General Info")
 add_catagory("Random")
-#add_catagory("Discord", show_discord)
+#add_catagory("Discord")
 add_catagory("Settings")
 
 # OSInt Stuff
@@ -118,10 +124,13 @@ add_tool("Website Info", Tools.UI.Internet.website_info, "Internet")
 add_tool("WHOIS Search", Tools.UI.Internet.whois_search, "Internet")
 add_tool("Email Scrapper", Tools.UI.Internet.email_scrapper, "Internet")
 
+# Dumper Stuff
+#add_tool("Wordle Dumper", Tools.UI.Dumpers.wordle_dumper, "Dumpers")
+
 # General Info
 add_tool("Minecraft Lookup", Tools.UI.GeneralInfo.minecraft_lookup, "General Info")
 
-# General Info
+# Random Stuff
 add_tool("JSON Formater", Tools.UI.Random.json_formater, "Random")
 
 # Discord Stuff
