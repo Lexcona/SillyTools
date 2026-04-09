@@ -47,9 +47,9 @@ catagories = {}
 def add_catagory(name:str, thing:str=""):
     catagories[name] = {"tools": [], "text": thing}
 
-def add_tool(name:str, tool:object, cat:str):
+def add_tool(name:str, tool:object, cat:str, width:int=500, height:int=300):
     if cat in list(catagories.keys()):
-        catagories[cat]["tools"].append({"name": name, "tool": tool})
+        catagories[cat]["tools"].append({"name": name, "tool": tool, "width": width, "height": height})
     else:
         console.print(f"cat no found :( {cat}", style="red")
 
@@ -70,11 +70,11 @@ def set_catagory(sender, app_data, user_data):
         for i in range(0, len(tools), 2):
             with dpg.group(horizontal=True, parent="content_area") as hor_group:
                 tool1 = tools[i]
-                create_tool(tool1["name"], tool1["tool"], width=500, height=300, parent=hor_group)
+                create_tool(tool1["name"], tool1["tool"], width=tool1["width"], height=tool1["height"], parent=hor_group)
 
                 if i + 1 < len(tools):
                     tool2 = tools[i + 1]
-                    create_tool(tool2["name"], tool2["tool"], width=500, height=300, parent=hor_group)
+                    create_tool(tool2["name"], tool2["tool"], width=tool2["width"], height=tool2["height"], parent=hor_group)
     else:
         dpg.add_spacer(height=20, parent="content_area")
         dpg.add_text(texttt, wrap=0, parent="content_area")
@@ -135,6 +135,10 @@ add_tool("JSON Formater", Tools.UI.Random.json_formater, "Random")
 
 # Discord Stuff
 add_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, "Discord")
+
+# Setting Stuff
+add_tool("API Keys", Tools.UI.Settings.api_keys, "Settings")
+add_tool("Menu Settings", Tools.UI.Settings.menu_settings, "Settings")
 
 with dpg.window(label="Main Content", tag="main_window", no_title_bar=True, no_resize=True, no_move=True, no_close=True, no_collapse=True, no_background=False):
     with dpg.group(horizontal=True, tag="main_content_group"):

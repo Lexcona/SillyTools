@@ -12,7 +12,7 @@ def github_api_key():
     config.write("api_keys/github", dpg.get_value("github_api_key").strip())
 
 def ipinfo_api_key():
-    config.write("api_keys/ipinfo")
+    config.write("api_keys/ipinfo", dpg.get_value("ipinfo_api_key").strip())
 
 def set_theme():
     selected_theme = dpg.get_value("menu_settings.theme").strip()
