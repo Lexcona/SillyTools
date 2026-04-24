@@ -14,7 +14,6 @@ from queue import Queue, Empty
 
 import dearpygui.dearpygui as dpg
 import dns.resolver
-import pywebcopy
 import requests
 import bs4
 

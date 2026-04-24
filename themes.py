@@ -3,11 +3,20 @@ import dearpygui.dearpygui as dpg
 import ColorPallets
 from ColorPallets.Catpuccin import Mocha, Macchiato, Latte, Frappe
 
+from rich.console import Console
+
+console = Console()
+
 default_result_text = "thing happen here when you press the button :3"
 
 current_theme = {}
 
 def set_colored_result(tag: str, text: str, color_name: str = "Mauve"):
+    try:
+        if text != default_result_text:
+            console.print(text, style=color_name.lower())
+    except Exception:
+        print(text)
     pallet = current_theme.get("pallet")
     if not pallet:
         dpg.set_value(tag, text)
