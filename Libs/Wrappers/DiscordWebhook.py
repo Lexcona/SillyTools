@@ -2,11 +2,9 @@ import base64
 
 import requests
 
-from rich.console import Console
-
 import Libs.Networking
 
-console = Console()
+from Vars.General import console
 
 def url_to_base64(img_url):
     img = requests.get(img_url, proxies=Libs.Networking.get_proxies()).content

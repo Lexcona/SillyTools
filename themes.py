@@ -3,9 +3,7 @@ import dearpygui.dearpygui as dpg
 import ColorPallets
 from ColorPallets.Catpuccin import Mocha, Macchiato, Latte, Frappe
 
-from rich.console import Console
-
-console = Console()
+from Vars.General import console
 
 default_result_text = "thing happen here when you press the button :3"
 

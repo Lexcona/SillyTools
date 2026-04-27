@@ -26,12 +26,11 @@ import Libs.Networking
 import themes
 
 from cryptography import x509
-from rich.console import Console
 from cryptography.x509.oid import NameOID, ExtensionOID
 
 from Libs.ConfigManager import config
 
-console = Console()
+from Vars.General import console
 
 def search_domain_nameservers(sender, app_data, user_data):
     result_text = "internet.find_name_servers_result_text"

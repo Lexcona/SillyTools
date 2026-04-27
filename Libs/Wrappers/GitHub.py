@@ -2,12 +2,10 @@ import time
 
 import requests
 
-from rich.console import Console
-
 import Libs
 from Libs.ConfigManager import config
 
-console = Console()
+from Vars.General import console
 
 session = requests.Session()
 
@@ -274,6 +272,7 @@ def get_emails(repo:str, username:str=None):
 
             res.raise_for_status()
             data = res.json()
+            #print(data)
 
             if not data or len(data) == 0:
                 break

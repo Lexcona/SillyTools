@@ -4,9 +4,7 @@ import themes
 
 from Libs.Wrappers import DiscordWebhook
 
-from rich.console import Console
-
-console = Console()
+from Vars.General import console
 
 def get_webhook_info():
     result_thing = "discord.discord_webhook_manager_result_text"

@@ -19,9 +19,7 @@ import Tools.UI.GeneralInfo
 import Tools.UI.Random
 import Tools.UI.Dumpers
 
-from rich.console import Console
-
-console = Console()
+from Vars.General import console
 
 with dpg.font_registry():
     big_font = dpg.add_font(Libs.General.resource_path("Fonts/Press_Start_2P/PressStart2P-Regular.ttf"), 17)

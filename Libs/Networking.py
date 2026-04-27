@@ -5,11 +5,10 @@ import requests
 import ipaddress
 import urllib.parse
 
-from rich.console import Console
 from Libs.ConfigManager import config
 from contextlib import contextmanager
 
-console = Console()
+from Vars.General import console
 
 user_agents = []
 
@@ -251,7 +250,8 @@ def service_tag(ip:str):
 def get_user_agent():
     global user_agents
     if not user_agents:
-        user_agents = requests.get("https://gist.githubusercontent.com/pzb/b4b6f57144aea7827ae4/raw/cf847b76a142955b1410c8bcef3aabe221a63db1/user-agents.txt", proxies=get_proxies()).text.strip().splitlines()
+        #user_agents = requests.get("https://gist.githubusercontent.com/pzb/b4b6f57144aea7827ae4/raw/cf847b76a142955b1410c8bcef3aabe221a63db1/user-agents.txt", proxies=get_proxies()).text.strip().splitlines()
+        user_agents = requests.get("https://microlink.io/user-agents.json", proxies=get_proxies()).json()["user"]
 
     return random.choice(user_agents)
 
