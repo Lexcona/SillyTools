@@ -649,3 +649,22 @@ def email_scrapper():
     except Exception as e:
         console.print(e, style="red")
         themes.set_colored_result(result_text, "thing went boom", "Red")
+
+def get_robots_txt():
+    result_text = "internet.get_robots_txt_result_text"
+
+    domain = dpg.get_value("internet.get_robots_txt_url_input").strip()
+    if not domain:
+        themes.set_colored_result(result_text, "you kinda forgot the url...", "Red")
+        return
+
+    domain = domain.split("://")[-1].split("/")[0]
+
+    res = requests.get(f"https://{domain}/robots.txt")
+    if res.status_code == 404:
+        themes.set_colored_result(result_text, "thing no exist", "Red")
+        return
+
+    res.raise_for_status()
+
+    themes.set_colored_result(result_text, f"found robots.txt :3\n{res.text}", "Mauve")

@@ -121,6 +121,7 @@ add_tool("URL Checker", Tools.UI.Internet.url_checker, "Internet")
 add_tool("Website Info", Tools.UI.Internet.website_info, "Internet")
 add_tool("WHOIS Search", Tools.UI.Internet.whois_search, "Internet")
 add_tool("Email Scrapper", Tools.UI.Internet.email_scrapper, "Internet")
+add_tool("Grab Robots.txt", Tools.UI.Internet.get_robots_txt, "Internet")
 
 # Dumper Stuff
 #add_tool("Wordle Dumper", Tools.UI.Dumpers.wordle_dumper, "Dumpers")

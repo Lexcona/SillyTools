@@ -316,3 +316,32 @@ def email_scrapper():
     )
 
     themes.set_colored_result("internet.email_scrapper_result_text", themes.default_result_text, "Mauve")
+
+def get_robots_txt():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.get_robots_txt_url_input",
+            hint="URL",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Scrape Emails",
+            callback=Tools.Backend.Internet.get_robots_txt,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.get_robots_txt_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.get_robots_txt_result_text", themes.default_result_text, "Mauve")
