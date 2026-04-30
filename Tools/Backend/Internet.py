@@ -668,3 +668,53 @@ def get_robots_txt():
     res.raise_for_status()
 
     themes.set_colored_result(result_text, f"found robots.txt :3\n{res.text}", "Mauve")
+
+def get_all_cert_data():
+    result_text = "internet.get_all_cert_data_result_text"
+
+    domain = dpg.get_value("internet.get_all_cert_data_domain_input").strip()
+    if not domain:
+        themes.set_colored_result(result_text, "you kinda forgot the domain...", "Red")
+        return
+
+    domain = domain.split("://")[-1].split("/")[0]
+
+    themes.set_colored_result(result_text, "finding cert info...\ncrt.sh takes a bit :3", "Mauve")
+
+
+    params = {
+        "q": domain,
+        "output": "json"
+    }
+    res = requests.get("https://crt.sh", params=params)
+    data = res.json()
+    if not data:
+        themes.set_colored_result(result_text, "cert no found :(", "Red")
+    else:
+        info_text = f"{len(data)} certs found :3\n\n"
+        info_text += "======================================================\n"
+        for thing in data:
+            info_text += f"CA Issuer ID: {thing.get('issuer_ca_id', 'N/a')}\n"
+            info_text += f"Issuer Name: {thing.get('issuer_name', 'N/a')}\n"
+            info_text += f"Common Name: {thing.get('common_name', 'N/a')}\n"
+            info_text += f"Name Value: {thing.get('name_value', 'N/a')}\n"
+            info_text += f"ID: {thing.get('id', 'N/a')}\n"
+            info_text += f"Entry Timestamp: {thing.get('entry_timestamp', 'N/a')}\n"
+            info_text += f"Not Before: {thing.get('not_before', 'N/a')}\n"
+            info_text += f"Not After: {thing.get('not_after', 'N/a')}\n"
+            info_text += f"Serial Number: {thing.get('serial_number', 'N/a')}\n"
+            info_text += f"Result Count: {thing.get('result_count', 'N/a')}\n"
+            info_text += "======================================================\n\n"
+        themes.set_colored_result(result_text, info_text, "Mauve")
+
+def get_current_cert_data():
+    result_text = "internet.get_current_cert_data_result_text"
+
+    domain = dpg.get_value("internet.get_current_cert_data_domain_input").strip()
+    if not domain:
+        themes.set_colored_result(result_text, "you kinda forgot the domain...", "Red")
+        return
+
+    domain = domain.split("://")[-1].split("/")[0]
+
+    themes.set_colored_result(result_text, "finding cert info...", "Mauve")

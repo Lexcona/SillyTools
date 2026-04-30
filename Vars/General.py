@@ -7,6 +7,8 @@ from rich.console import Console
 console = Console()
 scrapper = cloudscraper.create_scraper()
 
+catagories = {}
+
 class Errors(IntEnum):
     GENERAL = auto()
     BOT_DETECTION = auto()

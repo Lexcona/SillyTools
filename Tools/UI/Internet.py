@@ -345,3 +345,61 @@ def get_robots_txt():
     )
 
     themes.set_colored_result("internet.get_robots_txt_result_text", themes.default_result_text, "Mauve")
+
+def get_all_cert_data():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.get_all_cert_data_domain_input",
+            hint="Domain",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Get Certs",
+            callback=Tools.Backend.Internet.get_all_cert_data,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.get_all_cert_data_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.get_all_cert_data_result_text", themes.default_result_text, "Mauve")
+
+def get_current_cert_data():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.get_current_cert_data_domain_input",
+            hint="Domain",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Get Certs",
+            callback=Tools.Backend.Internet.get_current_cert_data,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.get_current_cert_data_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.get_current_cert_data_result_text", themes.default_result_text, "Mauve")

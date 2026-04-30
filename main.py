@@ -19,7 +19,7 @@ import Tools.UI.GeneralInfo
 import Tools.UI.Random
 import Tools.UI.Dumpers
 
-from Vars.General import console
+from Vars.General import console, catagories
 
 with dpg.font_registry():
     big_font = dpg.add_font(Libs.General.resource_path("Fonts/Press_Start_2P/PressStart2P-Regular.ttf"), 17)
@@ -39,8 +39,6 @@ dpg.create_viewport(
     resizable=False
 )
 dpg.set_viewport_small_icon(Libs.General.resource_path("Assets/icon.png"))
-
-catagories = {}
 
 def add_catagory(name:str, thing:str=""):
     catagories[name] = {"tools": [], "text": thing}
@@ -122,6 +120,8 @@ add_tool("Website Info", Tools.UI.Internet.website_info, "Internet")
 add_tool("WHOIS Search", Tools.UI.Internet.whois_search, "Internet")
 add_tool("Email Scrapper", Tools.UI.Internet.email_scrapper, "Internet")
 add_tool("Grab Robots.txt", Tools.UI.Internet.get_robots_txt, "Internet")
+add_tool("Get All Cert Data (crt.sh)", Tools.UI.Internet.get_all_cert_data, "Internet")
+add_tool("Get Current Cert Data", Tools.UI.Internet.get_current_cert_data, "Internet")
 
 # Dumper Stuff
 #add_tool("Wordle Dumper", Tools.UI.Dumpers.wordle_dumper, "Dumpers")
@@ -131,6 +131,7 @@ add_tool("Minecraft Lookup", Tools.UI.GeneralInfo.minecraft_lookup, "General Inf
 
 # Random Stuff
 add_tool("JSON Formater", Tools.UI.Random.json_formater, "Random")
+add_tool("All Tools", Tools.UI.Random.all_tools, "Random")
 
 # Discord Stuff
 add_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, "Discord")

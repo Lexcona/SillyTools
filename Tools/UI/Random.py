@@ -14,6 +14,8 @@ import socket
 
 import requests
 
+from Vars.General import catagories
+
 def json_formater():
     dpg.add_input_text(
         tag="random.json_formater_json_input",
@@ -56,3 +58,27 @@ def computer_information():
     info_text += f"current user: {os.getlogin()}\n"
 
     themes.set_colored_result("random.computer_information_result_text", info_text, "Mauve")
+
+def all_tools():
+    dpg.add_input_text(
+        default_value="",
+        tag="random.all_tools",
+        multiline=True,
+        width=480,
+        height=240,
+        readonly=True
+    )
+
+    themes.set_colored_result("random.all_tools", "getting all the tools...", "Mauve")
+
+    long_bar = "---------------------------------\n"
+
+    info_text = f"Silly Tools toolset:\n\n"
+    info_text += long_bar
+    for key, value in catagories.items():
+        info_text += f"{key}:\n"
+        for tool in value['tools']:
+            info_text += f" - {tool['name']}\n"
+        info_text += long_bar
+
+    themes.set_colored_result("random.all_tools", info_text, "Mauve")
