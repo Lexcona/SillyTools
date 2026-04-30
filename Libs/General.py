@@ -1,5 +1,4 @@
 import os
-import pwd
 import ctypes
 import platform
 
@@ -35,6 +34,7 @@ def get_user_full_name():
         return name_buffer.value.strip()
 
     else:
+        import pwd
         try:
             pw_entry = pwd.getpwuid(os.geteuid())
             full_name = pw_entry.pw_gecos.split(',')[0].strip()

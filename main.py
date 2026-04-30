@@ -38,7 +38,10 @@ dpg.create_viewport(
     height=720,
     resizable=False
 )
-dpg.set_viewport_small_icon(Libs.General.resource_path("Assets/icon.png"))
+if os.name == "nt":
+    dpg.set_viewport_small_icon(Libs.General.resource_path("Assets/icon.ico"))
+else:
+    dpg.set_viewport_small_icon(Libs.General.resource_path("Assets/icon.png"))
 
 def add_catagory(name:str, thing:str=""):
     catagories[name] = {"tools": [], "text": thing}

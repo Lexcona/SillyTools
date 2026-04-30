@@ -34,7 +34,12 @@ def get_ipinfo(ip:str, token:str=None, format:bool=False):
     res_geo.raise_for_status()
     timezone_data = res_timezone.json()
 
-    if token.replace(" ", "") == "":
+    is_tokener = False
+    if token:
+        if token.replace(" ", "") != "":
+            is_tokener = True
+
+    if is_tokener:
         if format == False:
             return res.json()
         ip_text = ""
