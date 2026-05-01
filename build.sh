@@ -1,11 +1,9 @@
 #!/bin/bash
-set -e  # Stop on any error
-
-# Clean previous builds
+set -e
 rm -rf builds
 mkdir -p builds/Linux builds/Windows
 
-PROJECT_ROOT=$(pwd)   # Make sure we reference the correct location
+PROJECT_ROOT=$(pwd)
 
 echo "=== Building Linux version ==="
 cd builds/Linux || exit 1
@@ -27,7 +25,7 @@ python3 -m PyInstaller \
 echo "=== Building Windows version with Wine ==="
 cd ../Windows || exit 1
 
-WINE_PYTHON="C:\\Python314\\python.exe"   # ← Change if your Python version is different (e.g. Python312)
+WINE_PYTHON="C:\\Python314\\python.exe"
 
 echo "Installing dependencies inside Wine..."
 wine "$WINE_PYTHON" -m pip install -r "${PROJECT_ROOT}/requirements.txt" || echo "Warning: pip install may have issues (some packages don't install cleanly under Wine)"
