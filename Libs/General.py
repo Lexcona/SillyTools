@@ -70,7 +70,7 @@ def auto_serialize(obj):
     if isinstance(obj, (list, tuple, set)):
         return [auto_serialize(item) for item in obj]
     if isinstance(obj, dict):
-        return {k: auto_serialize(v) for k, v in obj.items()}
+        return {key: auto_serialize(value) for key, value in obj.items()}
 
     if hasattr(obj, "__dict__") and not isinstance(obj, type):
         clean = {
