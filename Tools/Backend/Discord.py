@@ -4,7 +4,7 @@ import themes
 
 from Libs.Wrappers import DiscordWebhook
 
-from Vars.General import console
+from Vars.General import console, default_error_result_text
 
 def get_webhook_info():
     result_thing = "discord.discord_webhook_manager_result_text"
@@ -25,7 +25,7 @@ def get_webhook_info():
             info_text += "Guild ID: " + web_info.get("guild_id", "Not Available") + "\n"
             themes.set_colored_result(result_thing, info_text, "Mauve")
     except Exception as e:
-        themes.set_colored_result(result_thing, "thing went boom :(", "Red")
+        themes.set_colored_result(result_thing, default_error_result_text, "Red")
         console.print(e, style="red")
         return
 
@@ -48,7 +48,7 @@ def send_webhook_message():
 
         themes.set_colored_result(result_thing, "sent message :3", "Mauve")
     except Exception as e:
-        themes.set_colored_result(result_thing, "thing went boom :(", "Red")
+        themes.set_colored_result(result_thing, default_error_result_text, "Red")
         console.print(e, style="red")
         return
 
@@ -79,7 +79,7 @@ def edit_webhook():
 
         themes.set_colored_result(result_thing, "edited webhook :3", "Mauve")
     except Exception as e:
-        themes.set_colored_result(result_thing, "thing went boom :(", "Red")
+        themes.set_colored_result(result_thing, default_error_result_text, "Red")
         console.print(e, style="red")
         return
 
@@ -96,6 +96,6 @@ def delete_webhook():
 
         themes.set_colored_result(result_thing, "deleted webhook :3", "Mauve")
     except Exception as e:
-        themes.set_colored_result(result_thing, "thing went boom :(", "Red")
+        themes.set_colored_result(result_thing, default_error_result_text, "Red")
         console.print(e, style="red")
         return

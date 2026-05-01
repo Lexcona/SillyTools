@@ -1,3 +1,4 @@
+import json
 import re
 import os
 import ssl
@@ -21,6 +22,7 @@ from dns.exception import DNSException
 from bs4 import BeautifulSoup
 from requests.structures import CaseInsensitiveDict
 
+import Libs.General
 import Libs.Networking
 
 import themes
@@ -30,7 +32,7 @@ from cryptography.x509.oid import NameOID, ExtensionOID
 
 from Libs.ConfigManager import config
 
-from Vars.General import console
+from Vars.General import console, default_error_result_text
 
 def search_domain_nameservers(sender, app_data, user_data):
     result_text = "internet.find_name_servers_result_text"
@@ -53,7 +55,7 @@ def search_domain_nameservers(sender, app_data, user_data):
             themes.set_colored_result(result_text, f"{domain} no exist :(", "Red")
         else:
             console.print(e, style="red")
-            themes.set_colored_result(result_text, "thing went boom :(", "Red")
+            themes.set_colored_result(result_text, default_error_result_text, "Red")
 
 def ip_cert_lookup(sender, app_data, user_data):
     result_text = "internet.find_cert_domains_result_text"
@@ -120,7 +122,7 @@ def ip_cert_lookup(sender, app_data, user_data):
         themes.set_colored_result(result_text, "thing went no connect :(", "Red")
         return
     except Exception as e:
-        themes.set_colored_result(result_text, "thing went boom :(", "Red")
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
         console.print(e, style="red")
         return
 
@@ -436,7 +438,7 @@ def tag_dumper():
         themes.set_colored_result(result_text, tag_text, "Mauve")
 
     except Exception as e:
-        themes.set_colored_result(result_text, f"thing went boom :(", "Red")
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
         console.print(e, style="red")
 
 def method_scanner():
@@ -585,7 +587,7 @@ def website_info():
         themes.set_colored_result(result_text, info_text, "Mauve")
     except Exception as e:
         console.print(e, style="red")
-        themes.set_colored_result(result_text, "thing went boom :(", "Mauve")
+        themes.set_colored_result(result_text, default_error_result_text, "Mauve")
 
 def whois_search():
     result_text = "internet.whois_search_result_text"
@@ -615,7 +617,7 @@ def whois_search():
         themes.set_colored_result(result_text, whois_text, "Mauve")
 
     except Exception as e:
-        themes.set_colored_result(result_text, "thing went boom :(", "Red")
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
         console.print(e, style="red")
 
 def email_scrapper():
@@ -648,7 +650,7 @@ def email_scrapper():
             themes.set_colored_result(result_text, "emails no found :(", "Red")
     except Exception as e:
         console.print(e, style="red")
-        themes.set_colored_result(result_text, "thing went boom", "Red")
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
 
 def get_robots_txt():
     result_text = "internet.get_robots_txt_result_text"
@@ -659,15 +661,19 @@ def get_robots_txt():
         return
 
     domain = domain.split("://")[-1].split("/")[0]
+    try:
+        res = requests.get(f"https://{domain}/robots.txt")
+        if res.status_code == 404:
+            themes.set_colored_result(result_text, "thing no exist", "Red")
+            return
 
-    res = requests.get(f"https://{domain}/robots.txt")
-    if res.status_code == 404:
-        themes.set_colored_result(result_text, "thing no exist", "Red")
+        res.raise_for_status()
+
+        themes.set_colored_result(result_text, f"found robots.txt :3\n{res.text}", "Mauve")
+    except Exception as e:
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
+        console.print(e, style="red")
         return
-
-    res.raise_for_status()
-
-    themes.set_colored_result(result_text, f"found robots.txt :3\n{res.text}", "Mauve")
 
 def get_all_cert_data():
     result_text = "internet.get_all_cert_data_result_text"
@@ -686,26 +692,32 @@ def get_all_cert_data():
         "q": domain,
         "output": "json"
     }
-    res = requests.get("https://crt.sh", params=params)
-    data = res.json()
-    if not data:
-        themes.set_colored_result(result_text, "cert no found :(", "Red")
-    else:
-        info_text = f"{len(data)} certs found :3\n\n"
-        info_text += "======================================================\n"
-        for thing in data:
-            info_text += f"CA Issuer ID: {thing.get('issuer_ca_id', 'N/a')}\n"
-            info_text += f"Issuer Name: {thing.get('issuer_name', 'N/a')}\n"
-            info_text += f"Common Name: {thing.get('common_name', 'N/a')}\n"
-            info_text += f"Name Value: {thing.get('name_value', 'N/a')}\n"
-            info_text += f"ID: {thing.get('id', 'N/a')}\n"
-            info_text += f"Entry Timestamp: {thing.get('entry_timestamp', 'N/a')}\n"
-            info_text += f"Not Before: {thing.get('not_before', 'N/a')}\n"
-            info_text += f"Not After: {thing.get('not_after', 'N/a')}\n"
-            info_text += f"Serial Number: {thing.get('serial_number', 'N/a')}\n"
-            info_text += f"Result Count: {thing.get('result_count', 'N/a')}\n"
-            info_text += "======================================================\n\n"
+    try:
+        res = requests.get("https://crt.sh", params=params)
+        data = res.json()
+        if not data:
+            themes.set_colored_result(result_text, "cert no found :(", "Red")
+        else:
+            info_text = f"{len(data)} certs found :3\n\n"
+            info_text += "======================================================\n"
+            for thing in data:
+                info_text += f"CA Issuer ID: {thing.get('issuer_ca_id', 'N/a')}\n"
+                info_text += f"Issuer Name: {thing.get('issuer_name', 'N/a')}\n"
+                info_text += f"Common Name: {thing.get('common_name', 'N/a')}\n"
+                info_text += f"Name Value: {thing.get('name_value', 'N/a')}\n"
+                info_text += f"ID: {thing.get('id', 'N/a')}\n"
+                info_text += f"Entry Timestamp: {thing.get('entry_timestamp', 'N/a')}\n"
+                info_text += f"Not Before: {thing.get('not_before', 'N/a')}\n"
+                info_text += f"Not After: {thing.get('not_after', 'N/a')}\n"
+                info_text += f"Serial Number: {thing.get('serial_number', 'N/a')}\n"
+                info_text += f"Result Count: {thing.get('result_count', 'N/a')}\n"
+                info_text += "======================================================\n\n"
+
         themes.set_colored_result(result_text, info_text, "Mauve")
+    except Exception as e:
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
+        console.print(e, style="red")
+        return
 
 def get_current_cert_data():
     result_text = "internet.get_current_cert_data_result_text"
@@ -718,3 +730,34 @@ def get_current_cert_data():
     domain = domain.split("://")[-1].split("/")[0]
 
     themes.set_colored_result(result_text, "finding cert info...", "Mauve")
+
+    if ":" in domain:
+        ip_addr_split = domain.split(":")
+        ip_addr = ip_addr_split[0]
+        port = ip_addr_split[-1]
+    else:
+        ip_addr = domain
+        port = 443
+
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_OPTIONAL
+
+    info_text = "found cert data :3\n"
+    try:
+        cert_data = Libs.Networking.get_cert(ip_addr, port)
+        if cert_data["connection"].get("error"):
+            themes.set_colored_result(result_text, default_error_result_text, "Red")
+            console.print(cert_data["connection"]["error"], style="red")
+            return
+
+        cert = cert_data.get("certificate", {})
+        print(json.dumps(cert_data, indent=4))
+        if cert:
+            info_text += Libs.General.dict_to_pretty_str(cert_data)
+            themes.set_colored_result(result_text, info_text, "Mauve")
+        else:
+            themes.set_colored_result(result_text, "cert no found :(", "Red")
+    except Exception as e:
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
+        console.print(e, style="red")

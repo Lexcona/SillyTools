@@ -146,7 +146,7 @@ def ip_lookup(sender, app_data, user_data):
             themes.set_colored_result(result_text, "ip no real :(", "Red")
 
     except Exception as e:
-        themes.set_colored_result(result_text, "thing went boom :(", "Red")
+        themes.set_colored_result(result_text, default_error_result_text, "Red")
         console.print(e, style="red")
 
 search_list = []

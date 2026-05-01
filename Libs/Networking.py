@@ -1,14 +1,20 @@
+import ssl
+import json
 import socks
 import random
 import socket
+import hashlib
 import requests
 import ipaddress
+import cryptography.x509
 import urllib.parse
 
 from Libs.ConfigManager import config
 from contextlib import contextmanager
 
 from Vars.General import console
+
+from cryptography.hazmat.primitives import hashes
 
 user_agents = []
 
@@ -413,3 +419,86 @@ def proxy_socket(proxies: dict = None):
         socket.socket = original_socket
         socket.create_connection = original_create_connection
         socks.set_default_proxy()
+
+def cert_to_dict(cert: cryptography.x509.Certificate):
+    def name_to_dict(name:cryptography.x509.Name):
+        thing = {}
+        for attr in name:
+            thing[attr.oid._name]: thing[attr.value]
+
+    def ext_to_dict(exts:cryptography.x509.Extensions):
+        data = {}
+        for ext in exts:
+            key = ext.oid._name or ext.oid.dotted_string
+
+            try:
+                data[key] = str(ext.value)
+            except Exception:
+                data[key] = "no parse"
+
+        return data
+
+    return {
+        "version": cert.version.name,
+        "serial_number": cert.serial_number,
+        "signature_algorithm": cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None,
+
+        "fingerprints": {
+            "sha256": cert.fingerprint(hashes.SHA256()).hex(),
+            "sha1": cert.fingerprint(hashes.SHA1()).hex(),
+        },
+
+        "validity": {
+            "not_before": cert.not_valid_before.isoformat(),
+            "not_after": cert.not_valid_after.isoformat(),
+        },
+
+        "subject": name_to_dict(cert.subject),
+        "issuer": name_to_dict(cert.issuer),
+
+        "public_key": {
+            "type": type(cert.public_key()).__name__,
+        },
+
+        "extensions": ext_to_dict(cert.extensions),
+    }
+
+def get_cert(host:str, port:int=443, timeout:int=30):
+    result = {
+        "connection": {
+            "host": host,
+            "port": port,
+            "ip": None,
+            "error": None,
+        },
+        "tls": {
+            "version": None,
+            "cipher": None,
+        },
+        "certificate": None
+    }
+
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_OPTIONAL
+
+    try:
+        result["connection"]["ip"] = socket.gethostbyname(host)
+
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            with context.wrap_socket(sock, server_hostname=host) as ssock:
+                result["tls"]["version"] = ssock.version()
+                result["tls"]["cipher"] = ssock.cipher()
+
+                der_cert = ssock.getpeercert(binary_form=True)
+                if not der_cert:
+                    result["connection"]["error"] = "no certificate"
+                    return result
+
+                cert = cryptography.x509.load_der_x509_certificate(der_cert)
+                result["certificate"] = cert_to_dict(cert)
+
+    except Exception as e:
+        result["connection"]["error"] = str(e)
+
+    return result
