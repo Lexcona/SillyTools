@@ -20,7 +20,7 @@ import themes
 from Libs.ConfigManager import config
 from Vars import Protections
 
-from Vars.General import console, scrapper, Errors
+from Vars.General import console, scrapper, Errors, default_error_result_text
 from Vars.OSINT import Protections
 
 def search_emails_callback(sender, app_data, user_data):

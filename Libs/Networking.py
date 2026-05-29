@@ -42,10 +42,11 @@ def get_ipinfo(ip:str, token:str=None, format:bool=False):
 
     is_tokener = False
     if token:
-        if token.replace(" ", "") != "":
+        if token.replace(" ", "") != "" and not "None" in token and token != None:
             is_tokener = True
 
-    if is_tokener:
+
+    if not is_tokener:
         if format == False:
             return res.json()
         ip_text = ""

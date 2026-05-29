@@ -19,7 +19,7 @@ import requests
 import bs4
 
 from dns.exception import DNSException
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from requests.structures import CaseInsensitiveDict
 
 import Libs.General
@@ -223,6 +223,13 @@ def url_clean(base_url: str, link: str):
         console.print(e, style="red")
         return None
 
+def urls_from_script(script_data: bs4.Tag):
+    pattern = re.compile(
+        r'''(?:window\.)?location\.href\s*=\s*['"`]([^'"`]+)['"`]'''
+    )
+
+    return pattern.findall(script_data.get_text())
+
 def classify_tag(tag: bs4.Tag):
     kind = ""
 
@@ -312,18 +319,27 @@ def site_mapper(sender, app_data, user_data):
 
             for tag in soup.find_all():
                 link_text, kind = classify_tag(tag)
-                if not link_text:
-                    continue
 
-                link = url_clean(url, link_text)
-                if not link:
-                    continue
+                if link_text:
+                    link = url_clean(url, link_text)
 
-                if kind in cats:
-                    cats[kind].add(link)
+                    if link:
+                        if kind in cats:
+                            cats[kind].add(link)
 
-                if kind == "page" and urllib.parse.urlparse(link).netloc == domain:
-                    new_pages.add(link)
+                        if kind == "page" and urllib.parse.urlparse(link).netloc == domain:
+                            new_pages.add(link)
+
+                if tag.name == "script":
+                    for script_url in urls_from_script(tag):
+                        link = url_clean(url, script_url)
+                        if not link:
+                            continue
+
+                        cats["page"].add(link)
+
+                        if urllib.parse.urlparse(link).netloc == domain:
+                            new_pages.add(link)
 
             return url, new_pages, cats
 
