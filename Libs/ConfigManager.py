@@ -31,6 +31,10 @@ class ConfigManager:
                 data = data[part]
             else:
                 return default
+        
+        if data.replace(" ", "") == "":
+            return default
+
         return data
 
 config = ConfigManager()

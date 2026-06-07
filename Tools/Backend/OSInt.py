@@ -12,7 +12,7 @@ import Libs.General
 import Vars.OSINT
 from Libs.Networking import user_agents
 
-from Libs.Wrappers import GitHub
+from Libs.Wrappers import GitHub, GitLab
 from Libs import Networking
 
 import themes
@@ -24,62 +24,83 @@ from Vars.General import console, scrapper, Errors, default_error_result_text
 from Vars.OSINT import Protections
 
 def search_emails_callback(sender, app_data, user_data):
-    result_text = "osint.github_email_search_input_result_text"
+    result_text = "osint.git_email_search_input_result_text"
+    git_type = dpg.get_value("osint.git_email_search_type").strip()
 
-    username = dpg.get_value("osint.github_email_search_input").strip()
-
+    username = dpg.get_value("osint.git_email_search_input").strip()
     if not username:
         themes.set_colored_result(result_text, "you kinda forgot the username...", "Red")
         return
 
-    all_emails = []
+    if "/" in username:
+        username_split = username.split("://")[-1].split("/")
+        for part in username_split[::]:
+            if part.replace(" ", "") == "":
+                username_split.remove(part)
+        
+        domain = username[0].lower()
+        if domain == "gitlab.com":
+            git_type = "GitLab"
+        elif domain == "github.com":
+            git_type = "GitHub"
 
-    if "github.com" in username:
-        username_split = username.split("/")
-        while True:
-            if username_split[-1].replace(" ", "") == "":
-                username_split.pop(-1)
-            else:
-                break
         username = username_split[-1]
 
-    themes.set_colored_result(result_text, f"checking if real user...", "Mauve")
+    all_emails = []
 
-    if not GitHub.check_real_user(username):
-        themes.set_colored_result(result_text, "user no real :(", "Red")
+    themes.set_colored_result(result_text, "checking if real user...", "Mauve")
+
+    if git_type.lower() == "github":
+        if not GitHub.check_real_user(username):
+            themes.set_colored_result(result_text, "GitHub user no real :(", "Red")
+            return
+        get_repos = GitHub.get_repos
+        get_commits = GitHub.get_commits
+        get_emails = GitHub.get_emails
+        get_public_email = GitHub.get_user
+        get_event_emails = GitHub.get_event_emails
+    elif git_type.lower() == "gitlab":
+        if not GitLab.check_real_user(username):
+            themes.set_colored_result(result_text, "GitLab user no real :(", "Red")
+            return
+        get_repos = GitLab.get_repos
+        get_commits = GitLab.get_commits
+        get_emails = GitLab.get_emails
+        get_public_email = GitLab.get_user
+        get_event_emails = lambda u: []
+    else:
+        themes.set_colored_result(result_text, f"unknown platform: {git_type}", "Red")
         return
 
-    themes.set_colored_result(result_text, "scanning profile", "Mauve")
-
-    repos = GitHub.get_repos(username)
+    themes.set_colored_result(result_text, "scanning repos...", "Mauve")
+    repos = get_repos(username)
     if repos == 429:
         themes.set_colored_result(result_text, "we got rate limited :(", "Red")
         return
-
     themes.set_colored_result(result_text, f"found {len(repos)} repos :3", "Green")
 
-    commits = GitHub.get_commits(username)
+    commits = get_commits(username)
     if commits == 429:
         themes.set_colored_result(result_text, "we got rate limited :(", "Red")
         return
-
     themes.set_colored_result(result_text, f"found {len(commits)} commits :3", "Green")
 
     all_repos = list(set(repos + commits))
+    print(all_repos)
 
     if not all_repos:
         themes.set_colored_result(result_text, f"found no repos :(", "Yellow")
     else:
         last_scan = 0
         for repo in all_repos:
-            themes.set_colored_result(result_text, f"scanning {repo}'s commits...", "Mauve")
-            emails = GitHub.get_emails(repo, username)
+            repo_split = repo.split('^_^')
+            themes.set_colored_result(result_text, f"scanning {repo_split[0]}'s commits...", "Mauve")
+            emails = get_emails(repo_split[-1], username)
             if emails == 429:
                 themes.set_colored_result(result_text, "we got rate limited :(", "Red")
                 return
 
-            for email in emails:
-                all_emails.append(email)
+            all_emails.extend(emails)
 
             if last_scan >= 20:
                 delay = random.randint(30, 120)
@@ -89,7 +110,7 @@ def search_emails_callback(sender, app_data, user_data):
                 last_scan = 0
             last_scan += 1
 
-    public_email = GitHub.get_user_profile(username)
+    public_email = get_public_email(username, True)
     if public_email == 429:
         themes.set_colored_result(result_text, "we got rate limited :(", "Red")
         return
@@ -100,18 +121,19 @@ def search_emails_callback(sender, app_data, user_data):
     else:
         themes.set_colored_result(result_text, "no public email :(", "Yellow")
 
-    event_emails = GitHub.get_event_emails(username)
+    event_emails = get_event_emails(username)
     if event_emails == 429:
         themes.set_colored_result(result_text, "we got rate limited :(", "Red")
         return
 
     if event_emails:
         themes.set_colored_result(result_text, "found event emails :3", "Green")
-        for email in event_emails:
-            all_emails.append(email)
+        all_emails.extend(event_emails)
     else:
-        themes.set_colored_result(result_text, "no event emails :(", "Yellow")
+        if git_type.lower() == "github":
+            themes.set_colored_result(result_text, "no event emails :(", "Yellow")
 
+    # Deduplicate
     all_emails = list(set(all_emails))
 
     if not all_emails:

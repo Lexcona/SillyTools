@@ -107,7 +107,7 @@ add_catagory("Random")
 add_catagory("Settings")
 
 # OSInt Stuff
-add_tool("GitHub Email Search", Tools.UI.OSInt.github_email_search, "OSInt")
+add_tool("Git Email Search", Tools.UI.OSInt.git_email_search, "OSInt")
 add_tool("IP Lookup", Tools.UI.OSInt.ip_lookup, "OSInt")
 add_tool("Username Search", Tools.UI.OSInt.username_search, "OSInt")
 

@@ -560,13 +560,16 @@ def clean_headers(headers:CaseInsensitiveDict[str]):
 def web_info_text_thing(res:requests.Response):
     info_text = ""
     info_text += f"url: {res.url}\n"
-    if res.raw._connection:
+    if res.raw._connection and res.raw._connection.sock:
         ip_addr = res.raw._connection.sock.getpeername()[0]
         info_text += f"ip: {ip_addr} {Libs.Networking.service_tag(ip_addr)}\n"
     info_text += f"status code: {res.status_code}\n"
     info_text += f"server: {res.headers.get('server', 'unknown')}\n"
     info_text += f"\nheaders:\n"
     for key, value in clean_headers(res.headers).items():
+        info_text += f"{key}: {Libs.General.dict_to_pretty_str(value)}\n"
+    info_text += "\ncookies:\n"
+    for key, value in res.cookies.items():
         info_text += f"{key}: {value}\n"
     info_text += "=======================\n"
     return info_text

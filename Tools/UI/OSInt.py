@@ -5,10 +5,15 @@ import Tools.Backend.OSInt
 
 import themes
 
-def github_email_search():
+def git_email_search():
+    git_types = [
+        "GitHub",
+        "GitLab"
+    ]
+
     with dpg.group(horizontal=True):
         dpg.add_input_text(
-            tag="osint.github_email_search_input",
+            tag="osint.git_email_search_input",
             hint="Username/URL",
             width=300
         )
@@ -20,19 +25,20 @@ def github_email_search():
             callback=Tools.Backend.OSInt.search_emails_callback,
             user_data=None
         )
+    dpg.add_listbox(git_types, default_value=git_types[0], tag="osint.git_email_search_type")
 
     dpg.add_spacer(height=12)
 
     dpg.add_input_text(
         default_value="",
-        tag="osint.github_email_search_input_result_text",
+        tag="osint.git_email_search_input_result_text",
         multiline=True,
         width=480,
         height=185,
         readonly=True
     )
 
-    themes.set_colored_result("osint.github_email_search_input_result_text", themes.default_result_text, "Mauve")
+    themes.set_colored_result("osint.git_email_search_input_result_text", themes.default_result_text, "Mauve")
 
 def ip_lookup():
     with dpg.group(horizontal=True):

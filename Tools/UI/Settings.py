@@ -40,6 +40,15 @@ def api_keys():
         )
         dpg.configure_item("github_api_key", default_value=config.read("api_keys/github", ""))
 
+        dpg.add_input_text(
+            tag="gitlab_api_key",
+            hint="API Key",
+            width=300,
+            password=True
+        )
+        dpg.configure_item("gitlab_api_key", default_value=config.read("api_keys/gitlab", ""))
+
+
         dpg.add_spacer(width=8)
 
         dpg.add_button(
