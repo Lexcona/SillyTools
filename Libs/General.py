@@ -1,4 +1,6 @@
 import os
+import random
+import string
 import sys
 import ctypes
 import platform
@@ -113,3 +115,6 @@ def dict_to_pretty_str(data:(dict, list), indent:int=0, better_looking:bool=Fals
         lines.append(f"{spacing}{data}")
 
     return "\n".join(lines)
+
+def random_string(length:int):
+    return ''.join(random.choices(string.ascii_letters+string.digits, k=length))

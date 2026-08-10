@@ -1,3 +1,5 @@
+import threading
+
 import dearpygui.dearpygui as dpg
 
 import ColorPallets
@@ -43,7 +45,6 @@ def set_colored_result(tag: str, text: str, color_name: str = "Mauve"):
             dpg.add_theme_color(dpg.mvThemeCol_Text, color)
 
     dpg.set_value(tag, text)
-
     dpg.bind_item_theme(tag, text_like_theme)
     dpg.bind_item_theme(tag, temp_text_color)
 

@@ -18,6 +18,7 @@ import Tools.UI.Discord
 import Tools.UI.GeneralInfo
 import Tools.UI.Random
 import Tools.UI.Dumpers
+import Tools.UI.Trolls
 
 from Vars.General import console, catagories
 
@@ -97,21 +98,17 @@ Also to any federal agents looking at this...
 THIS TOOL SHOULD NOT BE USED AGAINST ANYTHING WITHOUT THE PERMISSION OF THE PERSON OR OWNER.
 I AM NOT RESPONSIBLE IF YOU USE IT ON ANYONE.""".replace("  ", "")
 
+# Home Thingy
 add_catagory("Home", welcome_text)
-add_catagory("OSInt")
-add_catagory("Internet")
-#add_catagory("Dumpers")
-add_catagory("General Info")
-add_catagory("Random")
-#add_catagory("Discord")
-add_catagory("Settings")
 
 # OSInt Stuff
+add_catagory("OSInt")
 add_tool("Git Email Search", Tools.UI.OSInt.git_email_search, "OSInt")
 add_tool("IP Lookup", Tools.UI.OSInt.ip_lookup, "OSInt")
 add_tool("Username Search", Tools.UI.OSInt.username_search, "OSInt")
 
 # Internet Stuff
+add_catagory("Internet")
 add_tool("Get Domain Nameservers", Tools.UI.Internet.find_name_servers, "Internet")
 add_tool("Connected Domain Finder (Certs)", Tools.UI.Internet.find_cert_domains, "Internet")
 add_tool("DNS Dump", Tools.UI.Internet.domain_to_ip, "Internet")
@@ -127,19 +124,28 @@ add_tool("Get All Cert Data (crt.sh)", Tools.UI.Internet.get_all_cert_data, "Int
 add_tool("Get Current Cert Data", Tools.UI.Internet.get_current_cert_data, "Internet")
 
 # Dumper Stuff
+#add_catagory("Dumpers")
 #add_tool("Wordle Dumper", Tools.UI.Dumpers.wordle_dumper, "Dumpers")
 
 # General Info
+add_catagory("General Info")
 add_tool("Minecraft Lookup", Tools.UI.GeneralInfo.minecraft_lookup, "General Info")
 
+# Troll Things
+add_catagory("Trolls")
+add_tool("ClassDojo Account Locker (Login Spam)", Tools.UI.Trolls.classdojo_account_locker, "Trolls")
+
 # Random Stuff
+add_catagory("Random")
 add_tool("JSON Formater", Tools.UI.Random.json_formater, "Random")
 add_tool("All Tools", Tools.UI.Random.all_tools, "Random")
 
 # Discord Stuff
-add_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, "Discord")
+#add_catagory("Discord")
+#add_tool("Discord Webhook Manager", Tools.UI.Discord.discord_webhook_manager, "Discord")
 
 # Setting Stuff
+add_catagory("Settings")
 add_tool("API Keys", Tools.UI.Settings.api_keys, "Settings")
 add_tool("Menu Settings", Tools.UI.Settings.menu_settings, "Settings")
 

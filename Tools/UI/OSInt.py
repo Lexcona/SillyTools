@@ -96,3 +96,31 @@ def username_search():
         readonly=True
     )
     themes.set_colored_result("osint.username_search_result_text", themes.default_result_text, "Mauve")
+
+def email_search():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="osint.email_search_email_input",
+            hint="Email",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Lookup IP",
+            callback=Tools.Backend.OSInt.ip_lookup,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="osint.email_search_email_input",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+    themes.set_colored_result("osint.email_search_result_text", themes.default_result_text, "Mauve")
