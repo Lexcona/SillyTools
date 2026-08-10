@@ -1,4 +1,5 @@
 import threading
+import time
 
 import requests
 
@@ -75,6 +76,7 @@ def classdojo_account_locker():
     themes.set_colored_result(result_text, "locking account...", "Mauve")
     for i in range(15):
         ThreadManager.do_thread(classdojo_account_locker_request, (email, result_text,))
+        time.sleep(0.25)
     ThreadManager.clear_threads()
     if status.read("trolls/classdojo_account_locker/didLock", False):
         themes.set_colored_result(result_text, f"account has been locked", "Green")
