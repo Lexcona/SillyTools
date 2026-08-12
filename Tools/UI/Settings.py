@@ -40,15 +40,6 @@ def api_keys():
         )
         dpg.configure_item("github_api_key", default_value=config.read("api_keys/github", ""))
 
-        dpg.add_input_text(
-            tag="gitlab_api_key",
-            hint="API Key",
-            width=300,
-            password=True
-        )
-        dpg.configure_item("gitlab_api_key", default_value=config.read("api_keys/gitlab", ""))
-
-
         dpg.add_spacer(width=8)
 
         dpg.add_button(
@@ -125,4 +116,34 @@ def menu_settings():
         label="SOCKS5",
         width=300,
         callback=Tools.Backend.Settings.set_socks5_proxy
+    )
+
+    dpg.add_text(
+        default_value="Proxy Lists",
+        color=themes.current_theme["pallet"].Mauve,
+        wrap=0
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/http_list", ""),
+        tag="menu_settings.http_proxy_list_input",
+        hint="HTTP List Path",
+        label="HTTP List Path",
+        width=300,
+        callback=Tools.Backend.Settings.set_http_proxy_list
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/https_list", ""),
+        tag="menu_settings.https_proxy_list_input",
+        hint="HTTPS List Path",
+        label="HTTPS List Path",
+        width=300,
+        callback=Tools.Backend.Settings.set_https_proxy_list
+    )
+    dpg.add_input_text(
+        default_value=config.read("proxies/socks5_list", ""),
+        tag="menu_settings.socks5_proxy_list_input",
+        hint="SOCKS5 List Path",
+        label="SOCKS5 List Path",
+        width=300,
+        callback=Tools.Backend.Settings.set_socks5_proxy_list
     )

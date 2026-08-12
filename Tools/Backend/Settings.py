@@ -52,3 +52,15 @@ def set_socks5_proxy():
         url = url.replace(parsed.scheme, "socks5")
 
     config.write("proxies/socks5", url.strip())
+
+def set_http_proxy_list():
+    path = dpg.get_value("menu_settings.http_proxy_list_input").strip()
+    config.write("proxies/http_list", path.strip())
+
+def set_https_proxy_list():
+    path = dpg.get_value("menu_settings.https_proxy_list_input").strip()
+    config.write("proxies/https_list", path.strip())
+
+def set_socks5_proxy_list():
+    path = dpg.get_value("menu_settings.socks5_proxy_list_input").strip()
+    config.write("proxies/socks5_list", path.strip())

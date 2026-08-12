@@ -334,9 +334,30 @@ def get_local_ip():
         socketer.close()
 
 def get_proxies():
-    http_proxy   = config.read("proxies/http", "").strip()
-    https_proxy  = config.read("proxies/https", "").strip()
-    socks5_proxy = config.read("proxies/socks5", "").strip()
+    http_proxy_list_path = config.read("proxies/http_list", "").strip()
+    https_proxy_list_path = config.read("proxies/https_list", "").strip()
+    socks5_proxy_list_path = config.read("proxies/socks5_list", "").strip()
+
+    if not http_proxy_list_path:
+        http_proxy   = config.read("proxies/http", "").strip()
+    else:
+        with open(http_proxy_list_path, "r") as f:
+            http_proxy_data = f.readlines()
+        http_proxy = random.choice(http_proxy_data).strip()
+
+    if not https_proxy_list_path:
+        https_proxy = config.read("proxies/https", "").strip()
+    else:
+        with open(https_proxy_list_path, "r") as f:
+            https_proxy_data = f.readlines()
+        https_proxy = random.choice(https_proxy_data).strip()
+
+    if not socks5_proxy_list_path:
+        socks5_proxy = config.read("proxies/https", "").strip()
+    else:
+        with open(socks5_proxy_list_path, "r") as f:
+            socks5_proxy_data = f.readlines()
+        socks5_proxy = random.choice(socks5_proxy_data).strip()
 
     proxies = {}
 
@@ -354,8 +375,6 @@ def get_proxies():
             proxies["http"] = http_proxy
         if https_proxy:
             proxies["https"] = https_proxy
-        elif http_proxy:
-            proxies["https"] = http_proxy
 
     return proxies
 
