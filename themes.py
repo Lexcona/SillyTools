@@ -10,6 +10,8 @@ from Vars.General import console, default_result_text
 current_theme = {}
 
 def set_colored_result(tag: str, text: str, color_name: str = "Mauve"):
+    if tag == "":
+        return
     try:
         if text != default_result_text:
             console.print(text, style=color_name.lower())

@@ -388,4 +388,3 @@ def username_search():
         themes.set_colored_result(result_text, info_text, "Mauve")
     else:
         themes.set_colored_result(result_text, "accounts no found :(", "Red")
-

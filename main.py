@@ -134,6 +134,7 @@ add_tool("Minecraft Lookup", Tools.UI.GeneralInfo.minecraft_lookup, "General Inf
 # Troll Things
 add_catagory("Trolls")
 add_tool("ClassDojo Account Locker (Login Spam)", Tools.UI.Trolls.classdojo_account_locker, "Trolls")
+add_tool("ClassDojo Email Spammer (Login Spam)", Tools.UI.Trolls.classdojo_code_spammer, "Trolls")
 
 # Random Stuff
 add_catagory("Random")

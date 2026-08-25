@@ -33,3 +33,38 @@ def classdojo_account_locker():
     )
 
     themes.set_colored_result("trolls.classdojo_account_locker_result_text", themes.default_result_text, "Mauve")
+
+def classdojo_code_spammer():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="trolls.classdojo_code_spammer",
+            hint="Email",
+            width=300
+        )
+
+        #dpg.add_spacer(width=8)
+
+        dpg.add_button(
+            label="Spam Account",
+            callback=Tools.Backend.Trolls.classdojo_code_spammer,
+            user_data=None
+        )
+
+        dpg.add_button(
+            label="Stop",
+            callback=Tools.Backend.Trolls.classdojo_code_spammer_stop,
+            user_data=None
+        )
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="trolls.classdojo_code_spammer_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("trolls.classdojo_code_spammer_result_text", themes.default_result_text, "Mauve")
