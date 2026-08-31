@@ -656,7 +656,7 @@ def email_scrapper():
 
     themes.set_colored_result(result_text, f"finding emails...", "Mauve")
     try:
-        res = requests.get(url, headers={"User-Agent": Libs.Networking.get_user_agent()}, allow_redirects=True)
+        res = requests.get(url, headers={"User-Agent": Libs.Networking.get_user_agent()}, allow_redirects=True, proxies=Libs.Networking.get_proxies())
         if res.status_code == 404:
             themes.set_colored_result(result_text, "url no found :(", "Red")
             return
@@ -681,7 +681,7 @@ def get_robots_txt():
 
     domain = domain.split("://")[-1].split("/")[0]
     try:
-        res = requests.get(f"https://{domain}/robots.txt")
+        res = requests.get(f"https://{domain}/robots.txt", proxies=Libs.Networking.get_proxies())
         if res.status_code == 404:
             themes.set_colored_result(result_text, "thing no exist", "Red")
             return
@@ -712,7 +712,7 @@ def get_all_cert_data():
         "output": "json"
     }
     try:
-        res = requests.get("https://crt.sh", params=params)
+        res = requests.get("https://crt.sh", params=params, proxies=Libs.Networking.get_proxies())
         data = res.json()
         if not data:
             themes.set_colored_result(result_text, "cert no found :(", "Red")

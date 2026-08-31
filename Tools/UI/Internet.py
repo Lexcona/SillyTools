@@ -145,9 +145,6 @@ def tag_dumper():
             width=300
         )
 
-        #dpg.add_spacer(width=8)
-        dpg.add_button(label="Select Folder", callback=lambda: dpg.show_item("internet.tag_dumper_dir_dialog"))
-
         dpg.file_dialog(
             directory_selector=True,
             show=False,
@@ -156,6 +153,8 @@ def tag_dumper():
             user_data="internet.tag_dumper_output_input"
         )
 
+        #dpg.add_spacer(width=8)
+        dpg.add_button(label="Select Folder", callback=lambda: dpg.show_item("internet.tag_dumper_dir_dialog"))
 
     dpg.add_spacer(height=12)
 

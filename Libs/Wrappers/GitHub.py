@@ -12,7 +12,7 @@ session = requests.Session()
 BASE_URL = "https://api.github.com"
 
 def do_get(path:str, params:dict={}):
-    return session.get(BASE_URL+path, params=params)
+    return session.get(BASE_URL+path, params=params, proxies=Libs.Networking.get_proxies())
 
 api_key = config.read("api_keys/github")
 if api_key:

@@ -12,7 +12,7 @@ session = requests.Session()
 BASE_URL = "https://gitlab.com/api/v4"
 
 def do_get(path:str, params:dict={}):
-    return session.get(BASE_URL+path, params=params)
+    return session.get(BASE_URL+path, params=params, proxies=Libs.Networking.get_proxies())
 
 api_key = config.read("api_keys/gitlab")
 if api_key:

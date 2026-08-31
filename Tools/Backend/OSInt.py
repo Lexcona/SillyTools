@@ -59,6 +59,7 @@ def search_emails_callback(sender, app_data, user_data):
         get_emails = GitHub.get_emails
         get_public_email = GitHub.get_user
         get_event_emails = GitHub.get_event_emails
+        update_proxies = GitHub.update_proxies
     elif git_type.lower() == "gitlab":
         if not GitLab.check_real_user(username):
             themes.set_colored_result(result_text, "GitLab user no real :(", "Red")
@@ -67,6 +68,7 @@ def search_emails_callback(sender, app_data, user_data):
         get_commits = GitLab.get_commits
         get_emails = GitLab.get_emails
         get_public_email = GitLab.get_user
+        update_proxies = GitLab.update_proxies
         get_event_emails = lambda u: []
     else:
         themes.set_colored_result(result_text, f"unknown platform: {git_type}", "Red")
@@ -74,14 +76,23 @@ def search_emails_callback(sender, app_data, user_data):
 
     themes.set_colored_result(result_text, "scanning repos...", "Mauve")
     repos = get_repos(username)
-    if repos == 429:
-        themes.set_colored_result(result_text, "we got rate limited :(", "Red")
-        return
+    for i in range(2):
+        if repos == 429:
+            themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+            if i == 0:
+                update_proxies()
+            else:
+                return
+        else:
+            break
+
+
     themes.set_colored_result(result_text, f"found {len(repos)} repos :3", "Green")
 
     commits = get_commits(username)
     if commits == 429:
         themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+        update_proxies()
         return
     themes.set_colored_result(result_text, f"found {len(commits)} commits :3", "Green")
 
@@ -95,10 +106,16 @@ def search_emails_callback(sender, app_data, user_data):
         for repo in all_repos:
             repo_split = repo.split('^_^')
             themes.set_colored_result(result_text, f"scanning {repo_split[0]}'s commits...", "Mauve")
-            emails = get_emails(repo_split[-1], username)
-            if emails == 429:
-                themes.set_colored_result(result_text, "we got rate limited :(", "Red")
-                return
+            for i in range(2):
+                emails = get_emails(repo_split[-1], username)
+                if emails == 429:
+                    themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+                    if i == 0:
+                        update_proxies()
+                    else:
+                        return
+                else:
+                    break
 
             all_emails.extend(emails)
 
@@ -110,10 +127,16 @@ def search_emails_callback(sender, app_data, user_data):
                 last_scan = 0
             last_scan += 1
 
-    public_email = get_public_email(username, True)
-    if public_email == 429:
-        themes.set_colored_result(result_text, "we got rate limited :(", "Red")
-        return
+    for i in range(2):
+        public_email = get_public_email(username, True)
+        if public_email == 429:
+            themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+            if i == 0:
+                update_proxies()
+            else:
+                return
+        else:
+            break
 
     if public_email:
         themes.set_colored_result(result_text, "found public email :3", "Green")
@@ -121,10 +144,16 @@ def search_emails_callback(sender, app_data, user_data):
     else:
         themes.set_colored_result(result_text, "no public email :(", "Yellow")
 
-    event_emails = get_event_emails(username)
-    if event_emails == 429:
-        themes.set_colored_result(result_text, "we got rate limited :(", "Red")
-        return
+    for i in range(2):
+        event_emails = get_event_emails(username)
+        if event_emails == 429:
+            themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+            if i == 0:
+                update_proxies()
+            else:
+                return
+        else:
+            break
 
     if event_emails:
         themes.set_colored_result(result_text, "found event emails :3", "Green")

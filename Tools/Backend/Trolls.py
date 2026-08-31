@@ -9,7 +9,7 @@ from pycparser.c_ast import While
 
 import Libs.General
 import themes
-from Libs import ThreadManager
+from Libs import ThreadManager, Networking
 from Libs.StatusManager import status
 
 def classdojo_check_account(email:str):
@@ -68,7 +68,7 @@ def classdojo_account_locker_request(email:str, result_text:str):
         'resumeAddClassFlow': False,
     }
 
-    res = requests.post('https://home.classdojo.com/api/session', params=params, headers=headers, json=json_data)
+    res = requests.post('https://home.classdojo.com/api/session', params=params, headers=headers, json=json_data, proxies=Libs.Networking.get_proxies())
     data = res.json()
 
     error_details = data.get("error")
