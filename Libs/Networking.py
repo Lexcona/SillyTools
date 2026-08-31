@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives import hashes
 user_agents = []
 
 cloudflare_ips = []
+cloudfront_ips = []
 github_ips = []
 
 def get_ipinfo(ip:str, token:str=None, format:bool=False):
@@ -224,6 +225,26 @@ def get_cloudflare_ips():
 
     return cloudflare_ips
 
+def get_cloudfront_ips():
+    global cloudfront_ips
+    if cloudfront_ips:
+        return cloudfront_ips
+
+    try:
+        res = requests.get("https://ip-ranges.amazonaws.com/ip-ranges.json", proxies=get_proxies())
+        res.raise_for_status()
+
+        for thing in res.json().get("prefixes", []):
+            cloudfront_ips.append(ipaddress.ip_network(thing["ip_prefix"]))
+        for thing in res.json().get("ipv6_prefixes", []):
+            cloudfront_ips.append(ipaddress.ip_network(thing["ip_prefix"]))
+
+        cloudfront_ips = list(set(cloudfront_ips))
+    except Exception as e:
+        console.print(e, style="red")
+    return cloudfront_ips
+
+
 def get_github_ips():
     global github_ips
     if github_ips:
@@ -252,6 +273,10 @@ def service_tag(ip:str):
     for cidr in get_cloudflare_ips():
         if ip_thing in cidr:
             return "(cloudflare)"
+
+    for cidr in get_cloudfront_ips():
+        if ip_thing in cidr:
+            return "(cloudfront)"
 
     for cidr in get_github_ips():
         if ip_thing in cidr:

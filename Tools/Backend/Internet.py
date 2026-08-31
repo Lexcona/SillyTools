@@ -304,7 +304,7 @@ def site_mapper(sender, app_data, user_data):
 
     def fetch_and_parse(url):
         try:
-            res = session.get(url, timeout=timeout)
+            res = session.get(url, timeout=timeout, allow_redirects=True)
             res.raise_for_status()
 
             if "text/html" not in res.headers.get("content-type", "").lower():
