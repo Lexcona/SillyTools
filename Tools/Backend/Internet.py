@@ -15,6 +15,7 @@ from queue import Queue, Empty
 
 import dearpygui.dearpygui as dpg
 import dns.resolver
+import jsbeautifier
 import requests
 import bs4
 
@@ -223,12 +224,475 @@ def url_clean(base_url: str, link: str):
         console.print(e, style="red")
         return None
 
-def urls_from_script(script_data: bs4.Tag):
-    pattern = re.compile(
-        r'''(?:window\.)?location\.href\s*=\s*['"`]([^'"`]+)['"`]'''
-    )
+IMAGE_EXTS = {"png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "bmp", "avif", "tif", "tiff"}
+AUDIO_EXTS = {"mp3", "wav", "ogg", "flac", "m4a", "aac", "wma", "opus", "mid", "midi"}
+VIDEO_EXTS = {"mp4", "webm", "mkv", "mov", "avi", "m4v", "ogv"}
+SCRIPT_EXTS = {"js", "mjs", "cjs"}
+STYLE_EXTS = {"css"}
+PAGE_EXTS = {"html", "htm", "php", "asp", "aspx", "jsp", "cgi"}
 
-    return pattern.findall(script_data.get_text())
+PATH_EXTS = IMAGE_EXTS | AUDIO_EXTS | VIDEO_EXTS | SCRIPT_EXTS | STYLE_EXTS | PAGE_EXTS | {
+    "json", "xml", "woff", "woff2", "ttf", "eot", "otf", "pdf", "map", "txt", "wasm", "csv", "zip", "gz"
+}
+
+MIME_RE = re.compile(
+    r"^(text|application|image|audio|video|font|multipart|model|message)/[\w.+-]+$",
+    re.I,
+)
+
+JS_IDENT = r"[A-Za-z_$][\w$]*"
+
+def is_valid_path(link: str) -> bool:
+    if not link:
+        return False
+
+    link = link.strip()
+    if len(link) < 2 or len(link) > 2048:
+        return False
+
+    if link.startswith(("#", "data:", "javascript:", "mailto:", "tel:", "blob:", "ws:", "wss:")):
+        return False
+
+    if MIME_RE.match(link):
+        return False
+
+    if re.search(r"[\s<>\\|^*]", link):
+        return False
+
+    if "${" in link or "{{" in link or "}}" in link:
+        return False
+
+    if re.match(r"https?://", link, re.I) or link.startswith("//"):
+        parsed = urllib.parse.urlparse(link if "://" in link else "http:" + link)
+        return bool(parsed.netloc)
+
+    if link.startswith(("/", "./", "../")):
+        if link in ("/", "./", "../", ".."):
+            return False
+        return bool(re.search(r"[A-Za-z0-9]", link))
+
+    path_only = link.split("?")[0].split("#")[0]
+    filename = path_only.rsplit("/", 1)[-1]
+    if "." in filename:
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in PATH_EXTS:
+            return True
+
+    if "/" in path_only and re.match(r"^[\w.-]+(?:/[\w.-]+)+/?$", path_only):
+        return True
+
+    return False
+
+def is_base_var(value: str) -> bool:
+    if not value:
+        return False
+    value = value.strip()
+    return value.startswith(("http://", "https://", "/", "./", "../", "//"))
+
+def beautify_js(code: str) -> str:
+    if not code:
+        return ""
+    try:
+        opts = jsbeautifier.default_options()
+        opts.unescape_strings = True
+        return jsbeautifier.beautify(code, opts)
+    except Exception:
+        return code
+
+def url_ext(url: str) -> str:
+    path = urllib.parse.urlparse(url).path.lower()
+    filename = path.rsplit("/", 1)[-1]
+    if "." not in filename:
+        return ""
+    return filename.rsplit(".", 1)[-1]
+
+def classify_js_url(url: str) -> str:
+    ext = url_ext(url)
+    if ext in SCRIPT_EXTS:
+        return "script"
+    if ext in STYLE_EXTS:
+        return "stylesheet"
+    if ext in IMAGE_EXTS:
+        return "image"
+    if ext in VIDEO_EXTS:
+        return "video"
+    if ext in AUDIO_EXTS:
+        return "audio"
+    return "page"
+
+def kind_from_content_type(url: str, content_type: str) -> str:
+    ct = (content_type or "").lower().split(";")[0].strip()
+    if ct.startswith("audio/") or ct in ("application/ogg", "application/x-mpegurl"):
+        return "audio"
+    if ct.startswith("image/"):
+        return "image"
+    if ct.startswith("video/"):
+        return "video"
+    if "javascript" in ct or "ecmascript" in ct:
+        return "script"
+    if "css" in ct:
+        return "stylesheet"
+    if "json" in ct or ct in ("application/graphql", "application/xml", "text/xml"):
+        return "api"
+    if "html" in ct:
+        return "page"
+    return classify_js_url(url)
+
+def is_clean_url(url: str) -> bool:
+    if not url:
+        return False
+    if "{{" in url or "}}" in url:
+        return False
+    parsed = urllib.parse.urlparse(url)
+    if not parsed.netloc or not parsed.hostname:
+        return False
+    if re.search(r"[)\]'\"={;]", parsed.netloc) or re.search(r"[)\]'\"={;]", parsed.path or ""):
+        return False
+    path = parsed.path or "/"
+    if path in ("/.html", "/.js", "/.css", "/.htm"):
+        return False
+    parts = [p for p in path.split("/") if p]
+    if parts and all(re.fullmatch(r"\d+", p) for p in parts):
+        return False
+    return True
+
+def empty_cats():
+    return {
+        "page": set(),
+        "image": set(),
+        "video": set(),
+        "audio": set(),
+        "script": set(),
+        "stylesheet": set(),
+        "iframe": set(),
+        "other": set(),
+        "api": set(),
+        "variable": set()
+    }
+
+def format_grouped_urls(urls):
+    groups = {}
+    for url in urls:
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path or "/"
+        if path.endswith("/"):
+            folder, name = path, ""
+        else:
+            folder, name = path.rsplit("/", 1)[0] + "/", path.rsplit("/", 1)[-1]
+        if parsed.query:
+            name = f"{name}?{parsed.query}" if name else f"?{parsed.query}"
+        key = f"{parsed.scheme}://{parsed.netloc}{folder}"
+        groups.setdefault(key, []).append(name or "/")
+
+    lines = []
+    for folder in sorted(groups):
+        names = sorted(set(groups[folder]))
+        if len(names) == 1:
+            lines.append(f"  {folder}{names[0]}")
+            continue
+        lines.append(f"  {folder} ({len(names)})")
+        for name in names:
+            lines.append(f"    {name}")
+    return lines
+
+def format_api_hits(hits, extra_urls=None):
+    by_url = {}
+    for hit in hits:
+        by_url.setdefault(hit["url"], []).append(hit)
+
+    lines = []
+    for url in sorted(by_url):
+        lines.append(f"  {url}")
+        seen = set()
+        for hit in by_url[url]:
+            call = re.sub(r"\s+", " ", hit.get("call") or "").strip()
+            loc = hit.get("js") or ""
+            if hit.get("line"):
+                loc = f"{loc}:{hit['line']}"
+            key = (call, loc)
+            if key in seen:
+                continue
+            seen.add(key)
+            method = hit.get("method") or ""
+            if method:
+                lines.append(f"    {method} {call}")
+            else:
+                lines.append(f"    {call}")
+            if loc:
+                lines.append(f"    {loc}")
+    extra_urls = extra_urls or set()
+    for url in sorted(extra_urls):
+        if url not in by_url:
+            lines.append(f"  {url}")
+    return lines
+
+def format_mapper_output(all_cats, count_thing, api_hits=None):
+    cat_order = ["page", "script", "api", "stylesheet", "iframe", "audio", "video", "image", "other", "variable"]
+    group_cats = {"image", "audio", "video"}
+    total = sum(len(vals) for key, vals in all_cats.items() if key != "variable")
+    lines = [
+        f"crawled {count_thing} pages",
+        f"found {total} urls",
+        ""
+    ]
+    for cat in cat_order:
+        urls = all_cats.get(cat) or set()
+        if not urls and not (cat == "api" and api_hits):
+            continue
+        count = len(urls) if urls else len({h["url"] for h in (api_hits or [])})
+        lines.append(f"{cat} ({count}):")
+        if cat == "api":
+            lines.extend(format_api_hits(api_hits or [], urls))
+        elif cat in group_cats:
+            lines.extend(format_grouped_urls(urls))
+        else:
+            for item in sorted(urls):
+                lines.append(f"  {item}")
+        lines.append("")
+    return "\n".join(lines).strip()
+
+def origin_of(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}/"
+
+def host_of(url: str) -> str:
+    host = urllib.parse.urlparse(url).hostname or ""
+    return host.lower().rstrip(".")
+
+def base_domain(url: str) -> str:
+    host = host_of(url)
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+def same_site(url: str, root: str) -> bool:
+    host = host_of(url)
+    if not host or not root:
+        return False
+    if host.startswith("www."):
+        host = host[4:]
+    return host == root or host.endswith("." + root)
+
+def extract_js_variables(code: str) -> dict:
+    found = {}
+    patterns = (
+        re.compile(rf"(?:(?:var|let|const)\s+)?({JS_IDENT})\s*=\s*(['\"])(.*?)\2", re.S),
+        re.compile(rf"(?:^|[\s{{,])({JS_IDENT})\s*:\s*(['\"])(.*?)\2"),
+    )
+    for rx in patterns:
+        for match in rx.finditer(code):
+            name = match.group(1)
+            val = match.group(3)
+            if is_base_var(val) and is_valid_path(val):
+                found.setdefault(name, set()).add(val)
+    return found
+
+def subst_templates(text: str, variables: dict) -> list:
+    names = list(dict.fromkeys(re.findall(rf"\$\{{({JS_IDENT})\}}", text)))
+    if not names:
+        return [text]
+
+    unresolved = [name for name in names if not variables.get(name)]
+    if unresolved:
+        return []
+
+    resolved = [text]
+    for name in names:
+        next_resolved = []
+        for item in resolved:
+            for val in variables[name]:
+                next_resolved.append(item.replace(f"${{{name}}}", val))
+        resolved = next_resolved
+        if len(resolved) > 32:
+            break
+    return resolved
+
+CALL_START = re.compile(
+    r"(?:"
+    r"\bfetch\s*\("
+    r"|\baxios\s*\.\s*(?:get|post|put|patch|delete|request|head)\s*\("
+    r"|\baxios\s*\("
+    r"|(?:\$|jQuery)\s*\.\s*(?:ajax|get|post|getJSON|put|delete)\s*\("
+    r"|\.open\s*\("
+    r"|\bsendBeacon\s*\("
+    r"|\bnew\s+Request\s*\("
+    r")",
+    re.I,
+)
+
+def matching_paren(code: str, open_idx: int) -> int:
+    depth = 0
+    in_str = None
+    escape = False
+    i = open_idx
+    while i < len(code):
+        c = code[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == in_str:
+                in_str = None
+        elif c in ("'", '"', "`"):
+            in_str = c
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+def call_method(snippet: str) -> str:
+    match = re.search(r"""method\s*:\s*['"](\w+)['"]""", snippet, re.I)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r"""\.open\s*\(\s*['"](\w+)['"]""", snippet, re.I)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r"axios\s*\.\s*(get|post|put|patch|delete|head)\s*\(", snippet, re.I)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r"(?:\$|jQuery)\s*\.\s*(get|post|put|delete|getJSON)\s*\(", snippet, re.I)
+    if match:
+        name = match.group(1).lower()
+        if name == "getjson":
+            return "GET"
+        return name.upper()
+    if re.search(r"\bsendBeacon\s*\(", snippet, re.I):
+        return "POST"
+    return "GET"
+
+def looks_like_api(url: str) -> bool:
+    path = urllib.parse.urlparse(url).path.lower()
+    if re.search(r"/(api|graphql|rest|json)(/|$)|/v\d+/", path):
+        return True
+    return url_ext(url) in {"json", "xml"}
+
+def js_source_label(base_url: str) -> str:
+    if url_ext(base_url) in SCRIPT_EXTS:
+        return base_url
+    return f"{base_url} (inline)"
+
+def extract_api_calls(code: str, base_url: str, variables: dict):
+    hits = []
+    origin = origin_of(base_url)
+    js_label = js_source_label(base_url)
+
+    def resolve_raw(raw):
+        if not raw or not is_valid_path(raw):
+            return None
+        link = url_clean(origin, raw.strip())
+        if not link or not is_clean_url(link):
+            return None
+        if classify_js_url(link) in ("image", "audio", "video", "script", "stylesheet"):
+            return None
+        if url_ext(link) in PAGE_EXTS:
+            return None
+        return link
+
+    for match in CALL_START.finditer(code):
+        close_idx = matching_paren(code, match.end() - 1)
+        if close_idx < 0:
+            continue
+        snippet = code[match.start():close_idx + 1]
+        if re.match(r"\.open\s*\(", snippet, re.I):
+            if not re.search(r"""open\s*\(\s*['"](?:GET|POST|PUT|PATCH|DELETE|HEAD)['"]""", snippet, re.I):
+                continue
+        compact = re.sub(r"\s+", " ", snippet).strip()
+        if len(compact) > 240:
+            compact = compact[:237] + "..."
+        line = code[:match.start()].count("\n") + 1
+        method = call_method(snippet)
+        found_links = set()
+
+        for smatch in re.finditer(r"""(['"])(.*?)\1""", snippet, re.S):
+            link = resolve_raw(smatch.group(2))
+            if link:
+                found_links.add(link)
+
+        for smatch in re.finditer(r"`([^`]*)`", snippet, re.S):
+            inner = smatch.group(1)
+            for resolved in subst_templates(inner, variables):
+                link = resolve_raw(resolved)
+                if link:
+                    found_links.add(link)
+            static_match = re.match(rf"\$\{{({JS_IDENT})\}}(/.+)", inner)
+            if static_match:
+                link = resolve_raw(static_match.group(2))
+                if link:
+                    found_links.add(link)
+
+        for cmatch in re.finditer(rf"({JS_IDENT})\s*\+\s*(['\"])(.*?)\2", snippet, re.S):
+            name, lit = cmatch.group(1), cmatch.group(3)
+            for val in variables.get(name, []):
+                link = resolve_raw(val + lit)
+                if link:
+                    found_links.add(link)
+
+        for link in found_links:
+            hits.append({
+                "url": link,
+                "js": js_label,
+                "line": line,
+                "call": compact,
+                "method": method,
+            })
+    return hits
+
+def parse_js(code: str, base_url: str, variables: dict):
+    candidates = set()
+    found_vars = {}
+    api_found = []
+    if not code:
+        return candidates, found_vars, api_found
+
+    code = beautify_js(code)
+    found_vars = extract_js_variables(code)
+    merged = {key: set(val) for key, val in variables.items()}
+    for name, vals in found_vars.items():
+        merged.setdefault(name, set()).update(vals)
+
+    origin = origin_of(base_url)
+    api_found = extract_api_calls(code, base_url, merged)
+
+    def add_link(raw):
+        if not raw or not is_valid_path(raw):
+            return
+        link = url_clean(origin, raw.strip())
+        if link and is_clean_url(link):
+            candidates.add(link)
+
+    for match in re.finditer(r"""(['"])(.*?)\1""", code, re.S):
+        add_link(match.group(2))
+
+    for match in re.finditer(r"`([^`]*)`", code, re.S):
+        inner = match.group(1)
+        for resolved in subst_templates(inner, merged):
+            add_link(resolved)
+
+        static_match = re.match(rf"\$\{{({JS_IDENT})\}}(/.+)", inner)
+        if static_match:
+            add_link(static_match.group(2))
+
+        for var_match in re.finditer(rf"\$\{{({JS_IDENT})\}}", inner):
+            name = var_match.group(1)
+            for val in merged.get(name, []):
+                add_link(inner.replace(f"${{{name}}}", val))
+
+    for match in re.finditer(rf"({JS_IDENT})\s*\+\s*(['\"])(.*?)\2", code, re.S):
+        name, lit = match.group(1), match.group(3)
+        for val in merged.get(name, []):
+            add_link(val + lit)
+
+    for match in re.finditer(rf"(['\"])(.*?)\1\s*\+\s*({JS_IDENT})", code, re.S):
+        lit, name = match.group(2), match.group(3)
+        for val in merged.get(name, []):
+            add_link(lit + val)
+
+    return candidates, found_vars, api_found
 
 def classify_tag(tag: bs4.Tag):
     kind = ""
@@ -262,7 +726,11 @@ def classify_tag(tag: bs4.Tag):
     if not url_part:
         return "", ""
 
-    return url_part.strip(), kind
+    url_part = url_part.strip()
+    file_kind = classify_js_url(url_part if "://" in url_part else f"http://x/{url_part.lstrip('/')}")
+    if file_kind in ("image", "audio", "video", "script", "stylesheet"):
+        kind = file_kind
+    return url_part, kind
 
 
 def site_mapper(sender, app_data, user_data):
@@ -276,7 +744,7 @@ def site_mapper(sender, app_data, user_data):
         return
 
     start_url = Libs.Networking.fix_url(url)
-    domain = urllib.parse.urlparse(start_url).netloc
+    root = base_domain(start_url)
 
     session = requests.Session()
     session.headers["User-Agent"] = Libs.Networking.get_user_agent()
@@ -286,36 +754,81 @@ def site_mapper(sender, app_data, user_data):
     queue = [start_url]
     found_urls = {start_url}
 
-    all_cats = {
-        "page": set(),
-        "image": set(),
-        "video": set(),
-        "audio": set(),
-        "script": set(),
-        "stylesheet": set(),
-        "iframe": set(),
-        "other": set()
-    }
+    all_cats = empty_cats()
 
     lock = threading.Lock()
+    shared_vars = {}
+    exist_cache = {}
+    js_pending = set()
     count_thing = 0
 
     themes.set_colored_result(result_widget, f"crawling from {start_url}...", "Mauve")
 
+    def probe_url(link):
+        with lock:
+            cached = exist_cache.get(link)
+        if cached is not None:
+            return cached
+
+        result = (False, None)
+        try:
+            res = session.head(link, timeout=timeout, allow_redirects=True)
+            if res.status_code in (403, 405, 501):
+                res = session.get(link, timeout=timeout, allow_redirects=True, stream=True)
+                res.close()
+            if 200 <= res.status_code < 400:
+                result = (True, kind_from_content_type(link, res.headers.get("content-type", "")))
+        except Exception:
+            result = (False, None)
+
+        with lock:
+            exist_cache[link] = result
+        return result
+
+    def take_js_vars(found_vars, cats):
+        with lock:
+            for name, vals in found_vars.items():
+                shared_vars.setdefault(name, set()).update(vals)
+                for val in vals:
+                    if is_valid_path(val) and "{{" not in val and "}}" not in val:
+                        cats["variable"].add(f"{name} = {val}")
+
+    def remember_js(candidates):
+        for link in candidates:
+            if same_site(link, root):
+                with lock:
+                    js_pending.add(link)
+
     def fetch_and_parse(url):
         try:
             res = session.get(url, timeout=timeout, allow_redirects=True)
+            if res.status_code == 404:
+                return url, set(), empty_cats()
             res.raise_for_status()
 
-            if "text/html" not in res.headers.get("content-type", "").lower():
-                return url, set(), {}
-
-            soup = BeautifulSoup(res.text, "html.parser")
+            ct = res.headers.get("content-type", "").lower()
+            path = urllib.parse.urlparse(url).path.lower()
+            is_js = "javascript" in ct or "ecmascript" in ct or path.endswith((".js", ".mjs", ".cjs"))
+            is_html = "text/html" in ct or res.text.lstrip()[:15].lower().startswith(("<!doctype", "<html"))
 
             new_pages = set()
-            cats = {}
-            for cat in all_cats:
-                cats[cat] = set()
+            cats = empty_cats()
+
+            with lock:
+                vars_snap = {key: set(val) for key, val in shared_vars.items()}
+
+            if is_js:
+                candidates, found_vars = parse_js(res.text, url, vars_snap)
+                take_js_vars(found_vars, cats)
+                remember_js(candidates)
+                return url, new_pages, cats
+
+            if not is_html:
+                kind = kind_from_content_type(url, ct)
+                cats[kind].add(url)
+                return url, set(), cats
+
+            soup = BeautifulSoup(res.text, "html.parser")
 
             for tag in soup.find_all():
                 link_text, kind = classify_tag(tag)
@@ -323,29 +836,27 @@ def site_mapper(sender, app_data, user_data):
                 if link_text:
                     link = url_clean(url, link_text)
 
-                    if link:
+                    if link and is_clean_url(link):
                         if kind in cats:
                             cats[kind].add(link)
 
-                        if kind == "page" and urllib.parse.urlparse(link).netloc == domain:
+                        if kind in ("page", "script") and same_site(link, root):
                             new_pages.add(link)
 
-                if tag.name == "script":
-                    for script_url in urls_from_script(tag):
-                        link = url_clean(url, script_url)
-                        if not link:
-                            continue
-
-                        cats["page"].add(link)
-
-                        if urllib.parse.urlparse(link).netloc == domain:
-                            new_pages.add(link)
+                if tag.name == "script" and not tag.get("src"):
+                    script_text = tag.get_text()
+                    if script_text and script_text.strip():
+                        candidates, found_vars = parse_js(script_text, url, vars_snap)
+                        take_js_vars(found_vars, cats)
+                        remember_js(candidates)
+                        for name, vals in found_vars.items():
+                            vars_snap.setdefault(name, set()).update(vals)
 
             return url, new_pages, cats
 
         except Exception as e:
             console.print(e, style="red")
-            return url, set(), {}
+            return url, set(), empty_cats()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         while queue:
@@ -380,22 +891,57 @@ def site_mapper(sender, app_data, user_data):
 
                     themes.set_colored_result(result_widget, f"crawled: {count_thing}\nqueue: {len(queue)}\ntotal unique: {len(found_urls)}", "Mauve")
 
-    info_lines = []
-    info_lines.append(f"crawled {count_thing} pages")
-    info_lines.append(f"found {len(found_urls)} unique urls\n")
+        pending = list(js_pending)
+        if pending:
+            themes.set_colored_result(result_widget, f"checking {len(pending)} js urls...", "Mauve")
 
-    for cat, urls in sorted(all_cats.items(), key=lambda x: -len(x[1])):
-        if urls:
-            info_lines.append(f"{cat} ({len(urls)} found):")
-            for ex in sorted(urls):
-                info_lines.append(f"  {ex}")
-            info_lines.append("")
+            def probe_pair(link):
+                exists, kind = probe_url(link)
+                return link, exists, kind
 
-    info_lines.append("crawled pages:")
-    for u in sorted(did_urls):
-        info_lines.append(f"  {u}")
+            extra_pages = []
+            checked = 0
+            for future in concurrent.futures.as_completed([executor.submit(probe_pair, link) for link in pending]):
+                link, exists, kind = future.result()
+                checked += 1
+                if checked % 25 == 0 or checked == len(pending):
+                    themes.set_colored_result(result_widget, f"checked js urls: {checked}/{len(pending)}", "Mauve")
+                if not exists or not kind:
+                    continue
+                with lock:
+                    all_cats[kind].add(link)
+                if kind in ("page", "script") and same_site(link, root) and link not in found_urls:
+                    extra_pages.append(link)
 
-    themes.set_colored_result(result_widget, "\n".join(info_lines).strip(), "Mauve")
+            for page in extra_pages:
+                if page not in found_urls:
+                    found_urls.add(page)
+                    queue.append(page)
+
+            while queue:
+                futures = []
+                for i in range(min(max_threads, len(queue))):
+                    if queue:
+                        next_url = queue.pop(0)
+                        if next_url not in did_urls:
+                            futures.append(executor.submit(fetch_and_parse, next_url))
+                if not futures:
+                    break
+                for future in concurrent.futures.as_completed(futures):
+                    url_done, new_pages, res_dict = future.result()
+                    with lock:
+                        if url_done in did_urls:
+                            continue
+                        did_urls.add(url_done)
+                        count_thing += 1
+                        for cat, links in res_dict.items():
+                            all_cats[cat].update(links)
+                        for page in new_pages:
+                            if page not in found_urls:
+                                found_urls.add(page)
+                                queue.append(page)
+
+    themes.set_colored_result(result_widget, format_mapper_output(all_cats, count_thing), "Mauve")
 
 def tag_dumper():
     result_text = "internet.tag_dumper_result_text"
