@@ -9,6 +9,8 @@ import ipaddress
 import cryptography.x509
 import urllib.parse
 
+import Libs.Networking
+from Libs import ConfigManager, General
 from Libs.ConfigManager import config
 from contextlib import contextmanager
 
@@ -21,6 +23,7 @@ user_agents = []
 cloudflare_ips = []
 cloudfront_ips = []
 github_ips = []
+used_proxies = []
 
 def get_ipinfo(ip:str, token:str=None, format:bool=False):
     # this is the free, accountless api
@@ -358,7 +361,11 @@ def get_local_ip():
     finally:
         socketer.close()
 
+def proxy_list_present():
+    return ConfigManager.config.read("proxies/http_list") or ConfigManager.config.read("proxies/https_list") or ConfigManager.config.read("proxies/socks5_list")
+
 def get_proxies():
+    global used_proxies
     http_proxy_list_path = config.read("proxies/http_list", "").strip()
     https_proxy_list_path = config.read("proxies/https_list", "").strip()
     socks5_proxy_list_path = config.read("proxies/socks5_list", "").strip()
@@ -368,21 +375,31 @@ def get_proxies():
     else:
         with open(http_proxy_list_path, "r") as f:
             http_proxy_data = f.readlines()
-        http_proxy = random.choice(http_proxy_data).strip()
+
+        http_proxy, used_proxies = Libs.General.random_exclude(http_proxy_data, used_proxies, True, True)
+        http_proxy = http_proxy.strip()
 
     if not https_proxy_list_path:
         https_proxy = config.read("proxies/https", "").strip()
     else:
         with open(https_proxy_list_path, "r") as f:
             https_proxy_data = f.readlines()
-        https_proxy = random.choice(https_proxy_data).strip()
+        https_proxy, used_proxies = Libs.General.random_exclude(https_proxy_data, used_proxies, True, True)
+        https_proxy = https_proxy.strip()
 
     if not socks5_proxy_list_path:
         socks5_proxy = config.read("proxies/https", "").strip()
     else:
         with open(socks5_proxy_list_path, "r") as f:
             socks5_proxy_data = f.readlines()
-        socks5_proxy = random.choice(socks5_proxy_data).strip()
+        socks5_proxy, used_proxies = Libs.General.random_exclude(socks5_proxy_data, used_proxies, True, True)
+        socks5_proxy = socks5_proxy.strip()
+
+    if http_proxy.startswith("http://"):
+        http_proxy = f"http://{http_proxy}"
+
+    if https_proxy.startswith("https://"):
+        https_proxy = f"https://{http_proxy}"
 
     proxies = {}
 

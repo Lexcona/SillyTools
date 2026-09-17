@@ -118,3 +118,27 @@ def dict_to_pretty_str(data:(dict, list), indent:int=0, better_looking:bool=Fals
 
 def random_string(length:int):
     return ''.join(random.choices(string.ascii_letters+string.digits, k=length))
+
+def list_exclude(data:list, exclude:list):
+    new_data = data
+
+    if len(data) == 0:
+        return []
+
+    for data_part in data:
+        if data_part in exclude:
+            new_data.remove(data_part)
+
+    return new_data
+
+def random_exclude(data:list, exclude:list, overflow_reset:bool=False, add:bool=False):
+    new_data = list_exclude(data, exclude)
+    if len(new_data) == 0 and overflow_reset == True:
+        new_data = data
+        exclude = []
+
+    data_rand = random.choice(new_data)
+    if add:
+        exclude.append(data_rand)
+
+    return data_rand, exclude

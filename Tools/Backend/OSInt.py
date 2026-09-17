@@ -90,10 +90,15 @@ def search_emails_callback(sender, app_data, user_data):
     themes.set_colored_result(result_text, f"found {len(repos)} repos :3", "Green")
 
     commits = get_commits(username)
-    if commits == 429:
-        themes.set_colored_result(result_text, "we got rate limited :(", "Red")
-        update_proxies()
-        return
+    for i in range(2):
+        if commits == 429:
+            themes.set_colored_result(result_text, "we got rate limited :(", "Red")
+            if i == 0:
+                update_proxies()
+            else:
+                return
+        else:
+            break
     themes.set_colored_result(result_text, f"found {len(commits)} commits :3", "Green")
 
     all_repos = list(set(repos + commits))
@@ -120,11 +125,14 @@ def search_emails_callback(sender, app_data, user_data):
             all_emails.extend(emails)
 
             if last_scan >= 20:
-                delay = random.randint(30, 120)
-                for i in range(delay):
-                    themes.set_colored_result(result_text, f"waiting {delay-i} more seconds till scanning again...", "Mauve")
-                    time.sleep(1)
-                last_scan = 0
+                if Libs.Networking.proxy_list_present():
+                    update_proxies()
+                else:
+                    delay = random.randint(30, 120)
+                    for i in range(delay):
+                        themes.set_colored_result(result_text, f"waiting {delay-i} more seconds till scanning again...", "Mauve")
+                        time.sleep(1)
+                    last_scan = 0
             last_scan += 1
 
     for i in range(2):

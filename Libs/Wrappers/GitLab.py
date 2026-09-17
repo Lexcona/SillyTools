@@ -11,8 +11,16 @@ session = requests.Session()
 
 BASE_URL = "https://gitlab.com/api/v4"
 
+
+def handle_ratelimit():
+    if Libs.Networking.proxy_list_present():
+        update_proxies()
+        return False
+
+    return True
+
 def do_get(path:str, params:dict={}):
-    return session.get(BASE_URL+path, params=params, proxies=Libs.Networking.get_proxies())
+    return session.get(BASE_URL+path, params=params)
 
 api_key = config.read("api_keys/gitlab")
 if api_key:
@@ -68,7 +76,7 @@ def get_user(username:str, email:bool=False):
         return data
     except requests.exceptions.HTTPError as e:
         console.print(e, style="red")
-        if error_check(e) == "rate limit":
+        if error_check(e) == "rate limit" and handle_ratelimit():
             return 429
         if res.status_code == 404:
             return False
@@ -128,7 +136,7 @@ def get_repos(username:str, just_repos:bool=True, id_only:bool=False):
 
         except requests.exceptions.HTTPError as e:
             console.print(e, style="red")
-            if error_check(e) == "rate limit":
+            if error_check(e) == "rate limit" and handle_ratelimit():
                 return 429
             time.sleep(5)
             
@@ -167,7 +175,7 @@ def get_issues(username:str):
 
         except requests.exceptions.HTTPError as e:
             console.print(e, style="red")
-            if error_check(e) == "rate limit":
+            if error_check(e) == "rate limit" and handle_ratelimit():
                 return 429
             time.sleep(5)
             
@@ -216,7 +224,7 @@ def get_commits(username:str, just_repos:bool=True):
 
         except requests.exceptions.HTTPError as e:
             console.print(e, style="red")
-            if error_check(e) == "rate limit":
+            if error_check(e) == "rate limit" and handle_ratelimit():
                 return 429
             time.sleep(5)
             
@@ -261,7 +269,7 @@ def get_emails(repo_id:int, username:str=None):
             time.sleep(0.5)
         except requests.exceptions.HTTPError as e:
             console.print(e, style="red")
-            if error_check(e) == "rate limit":
+            if error_check(e) == "rate limit" and handle_ratelimit():
                 return 429
             time.sleep(5)
     for email in emails[::]:
