@@ -8,3 +8,5 @@ build/
 builds/
 desilly/
 *.spec
+/ignore.txt
+/proxies.txt
