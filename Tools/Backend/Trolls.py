@@ -41,7 +41,10 @@ def classdojo_account_locker():
     themes.set_colored_result(result_text, "locking account...", "Mauve")
     for i in range(15):
         classdojo_account_locker_request(email, result_text)
-        time.sleep(random.uniform(0.25,0.75))
+        if Libs.Networking.proxy_list_present():
+            time.sleep(random.uniform(0.05, 0.075))
+        else:
+            time.sleep(random.uniform(0.25, 0.75))
     if status.read("trolls/classdojo_account_locker/didLock", False):
         themes.set_colored_result(result_text, f"account has been locked", "Green")
     status.reset("trolls/classdojo_account_locker")
