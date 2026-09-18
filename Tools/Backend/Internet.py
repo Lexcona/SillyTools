@@ -507,6 +507,42 @@ def subst_templates(text: str, variables: dict) -> list:
             break
     return resolved
 
+def join_var_parts(left: str, right: str) -> str:
+    if left.endswith("/") and right.startswith("/"):
+        return left[:-1] + right
+    return left + right
+
+def iter_joined_values(code: str, variables: dict):
+    for match in re.finditer(rf"({JS_IDENT})\s*\+\s*(['\"])(.*?)\2", code, re.S):
+        name, lit = match.group(1), match.group(3)
+        for val in variables.get(name, []):
+            yield join_var_parts(val, lit)
+
+    for match in re.finditer(rf"(['\"])(.*?)\1\s*\+\s*({JS_IDENT})", code, re.S):
+        lit, name = match.group(2), match.group(3)
+        for val in variables.get(name, []):
+            yield join_var_parts(lit, val)
+
+    for match in re.finditer(rf"({JS_IDENT})\s*\+\s*({JS_IDENT})(?!\s*\()", code):
+        left_name, right_name = match.group(1), match.group(2)
+        for left in variables.get(left_name, []):
+            for right in variables.get(right_name, []):
+                yield join_var_parts(left, right)
+
+    for match in re.finditer(rf"""({JS_IDENT})\s*\.\s*concat\s*\(\s*(['"])(.*?)\2\s*\)""", code, re.S):
+        name, lit = match.group(1), match.group(3)
+        for val in variables.get(name, []):
+            yield join_var_parts(val, lit)
+
+    for match in re.finditer(
+        rf"""(?:''|\"\")\s*\.\s*concat\s*\(\s*({JS_IDENT})\s*,\s*(['"])(.*?)\2\s*\)""",
+        code,
+        re.S,
+    ):
+        name, lit = match.group(1), match.group(3)
+        for val in variables.get(name, []):
+            yield join_var_parts(val, lit)
+
 CALL_START = re.compile(
     r"(?:"
     r"\bfetch\s*\("
@@ -607,9 +643,19 @@ def extract_api_calls(code: str, base_url: str, variables: dict):
         line = code[:match.start()].count("\n") + 1
         method = call_method(snippet)
         found_links = set()
+        joined_links = set()
+
+        for joined in iter_joined_values(snippet, variables):
+            link = resolve_raw(joined)
+            if link:
+                joined_links.add(link)
+                found_links.add(link)
 
         for smatch in re.finditer(r"""(['"])(.*?)\1""", snippet, re.S):
-            link = resolve_raw(smatch.group(2))
+            raw = smatch.group(2)
+            if joined_links and raw.startswith("/") and not looks_like_api(url_clean(origin, raw) or raw):
+                continue
+            link = resolve_raw(raw)
             if link:
                 found_links.add(link)
 
@@ -621,16 +667,16 @@ def extract_api_calls(code: str, base_url: str, variables: dict):
                     found_links.add(link)
             static_match = re.match(rf"\$\{{({JS_IDENT})\}}(/.+)", inner)
             if static_match:
-                link = resolve_raw(static_match.group(2))
-                if link:
-                    found_links.add(link)
-
-        for cmatch in re.finditer(rf"({JS_IDENT})\s*\+\s*(['\"])(.*?)\2", snippet, re.S):
-            name, lit = cmatch.group(1), cmatch.group(3)
-            for val in variables.get(name, []):
-                link = resolve_raw(val + lit)
-                if link:
-                    found_links.add(link)
+                name, rest = static_match.group(1), static_match.group(2)
+                if variables.get(name):
+                    for val in variables[name]:
+                        link = resolve_raw(join_var_parts(val, rest))
+                        if link:
+                            found_links.add(link)
+                elif not joined_links:
+                    link = resolve_raw(rest)
+                    if link:
+                        found_links.add(link)
 
         for link in found_links:
             hits.append({
@@ -675,22 +721,20 @@ def parse_js(code: str, base_url: str, variables: dict):
 
         static_match = re.match(rf"\$\{{({JS_IDENT})\}}(/.+)", inner)
         if static_match:
-            add_link(static_match.group(2))
+            name, rest = static_match.group(1), static_match.group(2)
+            if merged.get(name):
+                for val in merged[name]:
+                    add_link(join_var_parts(val, rest))
+            else:
+                add_link(rest)
 
         for var_match in re.finditer(rf"\$\{{({JS_IDENT})\}}", inner):
             name = var_match.group(1)
             for val in merged.get(name, []):
                 add_link(inner.replace(f"${{{name}}}", val))
 
-    for match in re.finditer(rf"({JS_IDENT})\s*\+\s*(['\"])(.*?)\2", code, re.S):
-        name, lit = match.group(1), match.group(3)
-        for val in merged.get(name, []):
-            add_link(val + lit)
-
-    for match in re.finditer(rf"(['\"])(.*?)\1\s*\+\s*({JS_IDENT})", code, re.S):
-        lit, name = match.group(2), match.group(3)
-        for val in merged.get(name, []):
-            add_link(lit + val)
+    for joined in iter_joined_values(code, merged):
+        add_link(joined)
 
     return candidates, found_vars, api_found
 
@@ -733,17 +777,11 @@ def classify_tag(tag: bs4.Tag):
     return url_part, kind
 
 
-def site_mapper(sender, app_data, user_data):
-    max_threads = 16
-    timeout = 10
-    result_widget = "internet.site_mapper_result_text"
+def crawl_site(start_url, timeout=10, max_threads=16, progress=None):
+    def note(msg):
+        if progress:
+            progress(msg)
 
-    url = dpg.get_value("internet.site_mapper_domain_input").strip()
-    if not url:
-        themes.set_colored_result(result_widget, "you kinda forgot the url...", "Red")
-        return
-
-    start_url = Libs.Networking.fix_url(url)
     root = base_domain(start_url)
 
     session = requests.Session()
@@ -760,9 +798,10 @@ def site_mapper(sender, app_data, user_data):
     shared_vars = {}
     exist_cache = {}
     js_pending = set()
+    api_hits = []
     count_thing = 0
 
-    themes.set_colored_result(result_widget, f"crawling from {start_url}...", "Mauve")
+    note(f"crawling from {start_url}...")
 
     def probe_url(link):
         with lock:
@@ -793,6 +832,12 @@ def site_mapper(sender, app_data, user_data):
                     if is_valid_path(val) and "{{" not in val and "}}" not in val:
                         cats["variable"].add(f"{name} = {val}")
 
+    def take_js_api(hits, cats):
+        with lock:
+            api_hits.extend(hits)
+            for hit in hits:
+                cats["api"].add(hit["url"])
+
     def remember_js(candidates):
         for link in candidates:
             if same_site(link, root):
@@ -818,8 +863,9 @@ def site_mapper(sender, app_data, user_data):
                 vars_snap = {key: set(val) for key, val in shared_vars.items()}
 
             if is_js:
-                candidates, found_vars = parse_js(res.text, url, vars_snap)
+                candidates, found_vars, api_found = parse_js(res.text, url, vars_snap)
                 take_js_vars(found_vars, cats)
+                take_js_api(api_found, cats)
                 remember_js(candidates)
                 return url, new_pages, cats
 
@@ -846,8 +892,9 @@ def site_mapper(sender, app_data, user_data):
                 if tag.name == "script" and not tag.get("src"):
                     script_text = tag.get_text()
                     if script_text and script_text.strip():
-                        candidates, found_vars = parse_js(script_text, url, vars_snap)
+                        candidates, found_vars, api_found = parse_js(script_text, url, vars_snap)
                         take_js_vars(found_vars, cats)
+                        take_js_api(api_found, cats)
                         remember_js(candidates)
                         for name, vals in found_vars.items():
                             vars_snap.setdefault(name, set()).update(vals)
@@ -889,11 +936,11 @@ def site_mapper(sender, app_data, user_data):
                             found_urls.add(page)
                             queue.append(page)
 
-                    themes.set_colored_result(result_widget, f"crawled: {count_thing}\nqueue: {len(queue)}\ntotal unique: {len(found_urls)}", "Mauve")
+                    note(f"crawled: {count_thing}\nqueue: {len(queue)}\ntotal unique: {len(found_urls)}")
 
         pending = list(js_pending)
         if pending:
-            themes.set_colored_result(result_widget, f"checking {len(pending)} js urls...", "Mauve")
+            note(f"checking {len(pending)} js urls...")
 
             def probe_pair(link):
                 exists, kind = probe_url(link)
@@ -905,9 +952,13 @@ def site_mapper(sender, app_data, user_data):
                 link, exists, kind = future.result()
                 checked += 1
                 if checked % 25 == 0 or checked == len(pending):
-                    themes.set_colored_result(result_widget, f"checked js urls: {checked}/{len(pending)}", "Mauve")
+                    note(f"checked js urls: {checked}/{len(pending)}")
                 if not exists or not kind:
                     continue
+                with lock:
+                    hit_urls = {hit["url"] for hit in api_hits}
+                if looks_like_api(link) or link in hit_urls:
+                    kind = "api"
                 with lock:
                     all_cats[kind].add(link)
                 if kind in ("page", "script") and same_site(link, root) and link not in found_urls:
@@ -941,7 +992,166 @@ def site_mapper(sender, app_data, user_data):
                                 found_urls.add(page)
                                 queue.append(page)
 
-    themes.set_colored_result(result_widget, format_mapper_output(all_cats, count_thing), "Mauve")
+    with lock:
+        hit_urls = {hit["url"] for hit in api_hits}
+        for link in list(all_cats["page"]):
+            if looks_like_api(link) or link in hit_urls:
+                all_cats["page"].discard(link)
+                all_cats["api"].add(link)
+
+    return {
+        "cats": all_cats,
+        "api_hits": api_hits,
+        "count": count_thing,
+        "found": found_urls,
+        "start_url": start_url,
+    }
+
+def site_mapper(sender, app_data, user_data):
+    result_widget = "internet.site_mapper_result_text"
+
+    url = dpg.get_value("internet.site_mapper_domain_input").strip()
+    if not url:
+        themes.set_colored_result(result_widget, "you kinda forgot the url...", "Red")
+        return
+
+    start_url = Libs.Networking.fix_url(url)
+    if not start_url:
+        themes.set_colored_result(result_widget, "url no real :(", "Red")
+        return
+
+    def progress(msg):
+        themes.set_colored_result(result_widget, msg, "Mauve")
+
+    result = crawl_site(start_url, progress=progress)
+    themes.set_colored_result(
+        result_widget,
+        format_mapper_output(result["cats"], result["count"], result["api_hits"]),
+        "Mauve",
+    )
+
+def site_dump(sender, app_data, user_data):
+    result_widget = "internet.site_dump_result_text"
+    output_dir = dpg.get_value("internet.site_dump_dir_input").strip()
+
+    if not output_dir:
+        themes.set_colored_result(result_widget, "pick an output folder first...", "Red")
+        return
+
+    url = dpg.get_value("internet.site_dump_url_input").strip()
+    if not url:
+        themes.set_colored_result(result_widget, "you kinda forgot the url...", "Red")
+        return
+
+    start_url = Libs.Networking.fix_url(url)
+    if not start_url:
+        themes.set_colored_result(result_widget, "url no real :(", "Red")
+        return
+
+    parsed_root = urllib.parse.urlparse(start_url)
+    root_domain = parsed_root.netloc.replace(":", "_")
+
+    def progress(msg):
+        themes.set_colored_result(result_widget, msg, "Mauve")
+
+    progress("crawling...")
+    result = crawl_site(start_url, progress=progress)
+
+    all_urls = result["found"]
+    if not all_urls:
+        themes.set_colored_result(result_widget, "no urls found :(", "Red")
+        return
+
+    session = requests.Session()
+    session.headers["User-Agent"] = Libs.Networking.get_user_agent()
+    session.proxies = Libs.Networking.get_proxies()
+
+    dump_root = os.path.join(output_dir, root_domain)
+    os.makedirs(dump_root, exist_ok=True)
+
+    local_map = {}
+
+    def url_to_local(raw_url):
+        parsed = urllib.parse.urlparse(raw_url)
+        host = parsed.netloc.replace(":", "_")
+        path = parsed.path.strip("/") or "index"
+        if not os.path.splitext(path)[1]:
+            path = path.rstrip("/") + "/index.html"
+        return host, path
+
+    def download_url(raw_url):
+        host, rel_path = url_to_local(raw_url)
+        local_path = os.path.join(output_dir, host, rel_path)
+        if os.path.exists(local_path):
+            return raw_url, local_path, True
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        try:
+            res = session.get(raw_url, timeout=15, allow_redirects=True)
+            if 200 <= res.status_code < 400:
+                with open(local_path, "wb") as f:
+                    f.write(res.content)
+                return raw_url, local_path, True
+        except Exception:
+            pass
+        return raw_url, local_path, False
+
+    downloaded = 0
+    failed = 0
+    total = len(all_urls)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+        futures = {executor.submit(download_url, u): u for u in all_urls}
+        for future in concurrent.futures.as_completed(futures):
+            raw_url, local_path, ok = future.result()
+            if ok:
+                downloaded += 1
+                local_map[raw_url] = local_path
+            else:
+                failed += 1
+            done = downloaded + failed
+            if done % 50 == 0 or done == total:
+                progress(f"downloading: {done}/{total} ({downloaded} ok, {failed} fail)")
+
+    lines = [
+        "<!DOCTYPE html>",
+        "<html><head><meta charset='utf-8'>",
+        f"<title>{root_domain} - dump index</title>",
+        "<style>",
+        "body{font-family:monospace;background:#1e1e2e;color:#cdd6f4;margin:2em;}",
+        "a{color:#89b4fa;}a:visited{color:#cba6f7;}",
+        "h1{color:#f5c2e7;}h2{color:#a6e3a1;}",
+        ".fail{color:#f38ba8;}.ok{color:#a6e3a1;}",
+        "hr{border-color:#45475a;}",
+        "</style></head><body>",
+        f"<h1>{root_domain}</h1>",
+        f"<p class='ok'>dumped {downloaded} files, {failed} failed</p>",
+        "<hr>",
+    ]
+
+    by_host = {}
+    for raw_url, local_path in sorted(local_map.items()):
+        parsed = urllib.parse.urlparse(raw_url)
+        host = parsed.netloc
+        by_host.setdefault(host, []).append((raw_url, local_path))
+
+    for host in sorted(by_host.keys()):
+        lines.append(f"<h2>{host}</h2><ul>")
+        for raw_url, local_path in by_host[host]:
+            rel = os.path.relpath(local_path, dump_root)
+            lines.append(f"<li><a href='{rel}'>{urllib.parse.urlparse(raw_url).path}</a></li>")
+        lines.append("</ul>")
+
+    lines.append("</body></html>")
+
+    index_path = os.path.join(dump_root, "index.html")
+    with open(index_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+    themes.set_colored_result(
+        result_widget,
+        f"done! dumped {downloaded} files to:\n{dump_root}\n\nindex.html: {index_path}",
+        "Green",
+    )
 
 def tag_dumper():
     result_text = "internet.tag_dumper_result_text"

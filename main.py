@@ -113,6 +113,7 @@ add_tool("Get Domain Nameservers", Tools.UI.Internet.find_name_servers, "Interne
 add_tool("Connected Domain Finder (Certs)", Tools.UI.Internet.find_cert_domains, "Internet")
 add_tool("DNS Dump", Tools.UI.Internet.domain_to_ip, "Internet")
 add_tool("Site Mapper", Tools.UI.Internet.site_mapper, "Internet")
+add_tool("Site Dumper", Tools.UI.Internet.site_dump, "Internet", width=490, height=350)
 add_tool("Tag Dumper", Tools.UI.Internet.tag_dumper, "Internet")
 add_tool("Method Scanner", Tools.UI.Internet.method_scanner, "Internet")
 add_tool("URL Checker", Tools.UI.Internet.url_checker, "Internet")

@@ -122,6 +122,50 @@ def site_mapper():
 
     themes.set_colored_result("internet.site_mapper_result_text", themes.default_result_text, "Mauve")
 
+def site_dump():
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.site_dump_url_input",
+            hint="Domain",
+            width=300
+        )
+
+        dpg.add_button(
+            label="Dump Site",
+            callback=Tools.Backend.Internet.site_dump,
+            user_data=None
+        )
+
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            tag="internet.site_dump_dir_input",
+            hint="Output folder",
+            width=300
+        )
+
+        dpg.add_file_dialog(
+            directory_selector=True,
+            show=False,
+            callback=Libs.General.dir_callback,
+            tag="internet.site_dump_dir_dialog",
+            user_data="internet.site_dump_dir_input"
+        )
+
+        dpg.add_button(label="Select Folder", callback=lambda: dpg.show_item("internet.site_dump_dir_dialog"))
+
+    dpg.add_spacer(height=12)
+
+    dpg.add_input_text(
+        default_value="",
+        tag="internet.site_dump_result_text",
+        multiline=True,
+        width=480,
+        height=185,
+        readonly=True
+    )
+
+    themes.set_colored_result("internet.site_dump_result_text", themes.default_result_text, "Mauve")
+
 def tag_dumper():
     with dpg.group(horizontal=True):
         dpg.add_input_text(
@@ -145,7 +189,7 @@ def tag_dumper():
             width=300
         )
 
-        dpg.file_dialog(
+        dpg.add_file_dialog(
             directory_selector=True,
             show=False,
             callback=Libs.General.dir_callback,
